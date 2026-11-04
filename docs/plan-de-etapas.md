@@ -24,7 +24,7 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 - [ ] Registro: crea `supplier` + `user` (owner), también en el primer ingreso con Google
 - [x] Login, logout y protección de `/panel`
 - [x] Recuperación de contraseña por email (Resend u otro)
-- [ ] Pantalla de configuración: nombre, WhatsApp, uso de marcas/categorías/códigos propios
+- [x] Pantalla de configuración: nombre, WhatsApp, uso de marcas/categorías/códigos propios
 - [ ] Test e2e de registro y login
 
 ## Etapa 2 — Catálogo

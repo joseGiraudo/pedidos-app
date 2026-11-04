@@ -1,18 +1,18 @@
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { db } from "@/db";
 import { suppliers } from "@/db/schema";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 
 import { logout } from "./actions";
 
 // Panel del proveedor. El middleware protege la ruta (cookie); acá se valida la sesión
 // contra la base como última palabra.
 export default async function PanelPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSession();
   if (!session) {
     redirect("/login");
   }
@@ -35,11 +35,16 @@ export default async function PanelPage() {
             {supplier ? `Comercio: ${supplier.name}` : "Tu comercio está listo."}
           </p>
         </div>
-        <form action={logout}>
-          <Button type="submit" variant="outline">
-            Cerrar sesión
+        <div className="flex items-center gap-2">
+          <Button variant="outline" render={<Link href="/panel/configuracion" />}>
+            Configuración
           </Button>
-        </form>
+          <form action={logout}>
+            <Button type="submit" variant="outline">
+              Cerrar sesión
+            </Button>
+          </form>
+        </div>
       </div>
     </main>
   );

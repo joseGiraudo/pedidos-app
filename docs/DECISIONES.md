@@ -181,6 +181,17 @@ revela si el email existe. Server actions con Zod (`forgotPasswordSchema`, `rese
 confirmación).
 **Descartado por ahora**: SMTP propio (Nodemailer) y verificación de email en el alta (no se exige).
 
+## 2026-11-04 · Pantalla de configuración y `getCurrentTenant()`
+
+**Motivo**: `/panel/configuracion` edita el `supplier` logueado: nombre, WhatsApp y los flags
+`use_brands` / `use_categories` / `uses_own_codes`. Se agrega `src/lib/session.ts` con `getSession()` y
+`getCurrentTenant()` (arma el `Tenant` desde la sesión de Better Auth) — lo que `tenant.ts` dejaba
+pendiente para la Etapa 1. La server action `saveConfig` toma el `supplier_id` **de la sesión** (nunca
+del cliente), valida con Zod (`supplierConfigSchema`, reusa `normalizeWhatsapp`) y actualiza por
+`eq(suppliers.id, tenant.supplierId)` (la tabla raíz se filtra por su `id`, no por `supplier_id`).
+Los tres flags se editan con checkboxes nativos registrados con React Hook Form (evita `Controller` y
+componentes extra). `logo_url` queda fuera (imágenes son post-MVP).
+
 ## 2026-11-04 · Seed artesanal con reset en transacción
 
 **Motivo**: `src/db/seed.ts` recarga la base dev con datos realistas de kiosco argentino (1 proveedor,
