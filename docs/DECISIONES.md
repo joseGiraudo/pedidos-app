@@ -107,3 +107,13 @@ trigger); alcanza porque toda escritura pasa por Drizzle.
 **Motivo**: las genera la CLI de Better Auth y no se editan a mano. En la primera migración las
 columnas que apuntan a un usuario (`created_by`, `actor_user_id`) quedan como `text` **sin FK**; las
 tablas `user`/`account`/`session`/`verification` y sus FKs se agregan al configurar Better Auth.
+
+## 2026-11-04 · Seed artesanal con reset en transacción
+
+**Motivo**: `src/db/seed.ts` recarga la base dev con datos realistas de kiosco argentino (1 proveedor,
+~200 artículos con variedad por peso / sin marca / sin stock, clientes de ambas listas) armados a mano,
+sin faker, para que sean creíbles y reproducibles. Cada corrida borra las tablas de negocio en orden de
+FKs y reinserta dentro de una transacción, así es idempotente. Corre con `tsx` (script `db:seed`) y
+carga `.env.local` con `dotenv`.
+**Fuera del seed**: pedidos, `price_changes` y `price_update_batches` — necesitan `user.id`, que recién
+existe con Better Auth (Etapa 1).
