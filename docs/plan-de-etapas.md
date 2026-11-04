@@ -15,7 +15,7 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 - [ ] Configurar Vitest y un test de ejemplo
 - [x] GitHub Actions: lint + typecheck + tests en cada push
 - [ ] Deploy en Vercel conectado al repo
-- [ ] README inicial
+- [x] README inicial
 
 ## Etapa 1 — Cuentas
 
