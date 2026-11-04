@@ -40,6 +40,9 @@ export default async function PanelPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" render={<Link href="/panel/articulos" />}>
+            Artículos
+          </Button>
           {supplier?.useCategories && (
             <Button variant="outline" render={<Link href="/panel/categorias" />}>
               Categorías

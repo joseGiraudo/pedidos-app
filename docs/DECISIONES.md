@@ -250,3 +250,28 @@ pantallas con las server actions pasadas como props. Primer uso real de sonner: 
 en el layout raíz.
 **Descartado**: bloquear el borrado si la categoría/marca está en uso (más fricción); `window.confirm`
 y un componente `dialog` nuevo (la confirmación inline alcanza sin sumar dependencias).
+
+## 2026-11-04 · Lista de artículos con filtros/orden/paginación en el servidor (Etapa 2)
+
+**Motivo**: `/panel/articulos` lista el catálogo. Con el objetivo de "rápido incluso con 1.000+
+artículos" (`requisitos.md`), el filtrado, la búsqueda, el orden y la paginación se hacen **en el
+servidor**: el estado vive en los query params de la URL y el server component vuelve a consultar en
+cada cambio. TanStack Table (`@tanstack/react-table`) se usa en modo **manual** (`manualPagination` +
+`manualSorting`), solo para el modelo de columnas y el render; no hace filtrado/paginado en el cliente.
+**Filtros** (coinciden con `requisitos.md`): buscador por nombre o código (`ilike`, aprovecha el índice
+`pg_trgm` de `products.name`), y selects de categoría, marca y disponibilidad. El valor `none` filtra
+"sin categoría/sin marca" (`IS NULL`). Orden por nombre (default), código o precio mayorista desde los
+encabezados. Página de 20; el conteo total sale de un `count()` con el mismo `where`.
+**Solo activos**: la lista muestra `is_active = true`; la baja lógica y el alta/edición son tareas
+aparte de la etapa. Las columnas de marca/categoría y sus filtros **se ocultan** según
+`use_brands` / `use_categories`.
+**Componentes**: `ArticlesToolbar` (búsqueda + filtros, selects nativos como en Configuración) y
+`ArticlesTable` (TanStack + encabezados ordenables + paginación), ambos cliente; comparten el hook
+`useUrlParams` que reescribe la URL preservando el resto y vuelve a página 1 al cambiar filtros/orden.
+**Formato**: `src/lib/format.ts` → `formatMoney` (Intl `es-AR`, `$` con miles por punto y decimales por
+coma; `numeric` llega como string desde la base).
+**Nota de lint**: `useReactTable` dispara el warning `react-hooks/incompatible-library` del React
+Compiler (no puede memoizar las funciones que devuelve TanStack); es esperado y seguro con paginación
+manual, se silencia puntualmente con un `eslint-disable-next-line` comentado.
+**Descartado**: tabla totalmente client-side (traer todo y filtrar en memoria) — no escala a 1.000+
+artículos en celular; un componente `select` de shadcn (los `<select>` nativos alcanzan para los filtros).
