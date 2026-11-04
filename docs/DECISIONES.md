@@ -156,6 +156,18 @@ las tareas siguientes de la Etapa 1. `/panel` tiene por ahora un guard mínimo d
 **Descartado**: pasar `supplier_id` por el cliente en el signup (inseguro: permitiría adjuntarse a otro
 proveedor); crear el user primero y actualizar después (imposible con `NOT NULL`).
 
+## 2026-11-04 · Login, logout y protección de /panel
+
+**Motivo**: login y logout como **server actions** (`auth.api.signInEmail` / `auth.api.signOut`),
+igual que el registro, validando con Zod (`loginSchema`) y con `nextCookies()` manejando la cookie.
+El error de credenciales es genérico ("Email o contraseña incorrectos") para no filtrar qué campo
+falló. **Protección de `/panel`** con un `src/middleware.ts` que hace un chequeo optimista de la cookie
+con `getSessionCookie` (apto para edge, sin tocar la base); la validación real contra la base la hace
+la página con `auth.api.getSession` (defensa en profundidad). Las páginas `/login` y `/registro`
+redirigen a `/panel` si ya hay sesión. Logout con `<form action={logout}>` en el panel.
+**Descartado**: validar la sesión contra la base dentro del middleware (no se puede en edge sin el
+driver; además el chequeo de cookie + validación en la página alcanza).
+
 ## 2026-11-04 · Seed artesanal con reset en transacción
 
 **Motivo**: `src/db/seed.ts` recarga la base dev con datos realistas de kiosco argentino (1 proveedor,

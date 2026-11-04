@@ -33,3 +33,12 @@ export const registerSchema = supplierSignupSchema.extend({
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type RegisterFormValues = z.input<typeof registerSchema>;
+
+/** Inicio de sesión del proveedor. */
+export const loginSchema = z.object({
+  email: z.string().trim().toLowerCase().pipe(z.email("Email inválido")),
+  password: z.string().min(1, "Ingresá tu contraseña"),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+export type LoginFormValues = z.input<typeof loginSchema>;
