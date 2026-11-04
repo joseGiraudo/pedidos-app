@@ -205,6 +205,18 @@ registro por email lo sigue pidiendo. Botón `signIn.social({ provider: "google"
 **Pendiente de verificación en vivo**: el callback real requiere credenciales de Google + navegador.
 **Nota**: Next 16 deprecó el archivo `middleware` a favor de `proxy` (solo warning; sigue funcionando).
 
+## 2026-11-04 · Tests e2e con Playwright
+
+**Motivo**: `e2e/` con Playwright (Chromium) cubre registro, login/logout, protección de `/panel` y
+error de credenciales — incluye los submits de formularios y server actions que no se podían ejercitar
+por HTTP. `playwright.config.ts` levanta el dev server (`webServer`, `reuseExistingServer` en local) y
+corre secuencial (`workers: 1`) porque comparten la **dev de Neon**. Timeouts holgados (15 s) por la
+compilación on-demand del dev server en el primer uso. Los tests crean usuarios reales con emails
+`e2e-*@example.com` y un `globalTeardown` los borra al final (importa las tablas desde sus archivos,
+no del barrel, porque el runner no resuelve bien `export *`). Google queda fuera del e2e (el callback
+real necesita credenciales + cuenta Google). **No** se corre en CI por ahora (no hay base de test ni
+browsers en el workflow); se corre local con `npm run test:e2e`.
+
 ## 2026-11-04 · Seed artesanal con reset en transacción
 
 **Motivo**: `src/db/seed.ts` recarga la base dev con datos realistas de kiosco argentino (1 proveedor,

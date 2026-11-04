@@ -25,7 +25,7 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 - [x] Login, logout y protección de `/panel`
 - [x] Recuperación de contraseña por email (Resend u otro)
 - [x] Pantalla de configuración: nombre, WhatsApp, uso de marcas/categorías/códigos propios
-- [ ] Test e2e de registro y login
+- [x] Test e2e de registro y login
 
 ## Etapa 2 — Catálogo
 
