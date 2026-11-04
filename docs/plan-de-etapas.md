@@ -29,7 +29,7 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 
 ## Etapa 2 — Catálogo
 
-- [ ] ABM de categorías y marcas
+- [x] ABM de categorías y marcas
 - [ ] Lista de artículos con TanStack Table: filtros, buscador, paginación
 - [ ] Alta y edición de artículo (por unidad y por peso)
 - [ ] Generación automática de códigos

@@ -226,3 +226,27 @@ FKs y reinserta dentro de una transacción, así es idempotente. Corre con `tsx`
 carga `.env.local` con `dotenv`.
 **Fuera del seed**: pedidos, `price_changes` y `price_update_batches` — necesitan `user.id`, que recién
 existe con Better Auth (Etapa 1).
+
+## 2026-11-04 · ABM de categorías y marcas (Etapa 2)
+
+**Motivo**: primera tarea del catálogo. Pantallas `/panel/categorias` y `/panel/marcas` para el alta,
+edición, borrado y (solo categorías) reordenamiento. Server actions con `getCurrentTenant()` y los
+helpers de `tenant.ts`; validación compartida en `src/lib/validations/catalog.ts` (`normalizeName`
+recorta y colapsa espacios —no pasa a mayúsculas, eso es solo para `code` de productos— y
+`taxonomyNameSchema`). El `unique(supplier_id, name)` de la base atrapa duplicados: las actions
+traducen el SQLSTATE `23505` (`src/lib/db-errors.ts`) a un mensaje claro.
+**Borrado**: `categories`/`brands` no tienen `is_active`, así que el borrado es **físico**. Como los
+productos las referencian con FK nullable (`NULL` = sin categoría/marca), al borrar se **reasignan a
+`NULL`** los artículos y luego se elimina la fila, todo en una transacción. La pantalla avisa cuántos
+artículos quedarán sin categoría/marca antes de confirmar.
+**Reorden de categorías**: botones ↑/↓; `moveCategory` reindexa `sort_order` 0..n-1 sobre la lista
+reordenada (robusto frente a `sort_order` repetidos que pudiera traer el seed). Las marcas no se ordenan.
+**Visibilidad por flags**: las pantallas se guardan con `use_categories` / `use_brands` del proveedor
+(redirigen a `/panel` si están en off) y los links del panel solo aparecen si el flag está activo
+(regla "ocultar marca/categoría si el proveedor no las usa").
+**UI**: componente cliente compartido `src/app/panel/_components/taxonomy-manager.tsx` (edición inline,
+confirmación de borrado con conteo, `useTransition` + `router.refresh()`), reutilizado por ambas
+pantallas con las server actions pasadas como props. Primer uso real de sonner: se montó `<Toaster />`
+en el layout raíz.
+**Descartado**: bloquear el borrado si la categoría/marca está en uso (más fricción); `window.confirm`
+y un componente `dialog` nuevo (la confirmación inline alcanza sin sumar dependencias).
