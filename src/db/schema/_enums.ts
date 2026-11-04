@@ -4,6 +4,8 @@ import { pgEnum } from "drizzle-orm/pg-core";
 
 export const supplierPlan = pgEnum("supplier_plan", ["free"]);
 
+export const userRole = pgEnum("user_role", ["owner", "staff"]);
+
 export const priceList = pgEnum("price_list", ["wholesale", "retail"]);
 
 export const pricingUnit = pgEnum("pricing_unit", ["unit", "kg"]);

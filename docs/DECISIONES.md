@@ -108,6 +108,28 @@ trigger); alcanza porque toda escritura pasa por Drizzle.
 columnas que apuntan a un usuario (`created_by`, `actor_user_id`) quedan como `text` **sin FK**; las
 tablas `user`/`account`/`session`/`verification` y sus FKs se agregan al configurar Better Auth.
 
+## 2026-11-04 · Better Auth con email y contraseña (Etapa 1)
+
+**Motivo**: autenticación de proveedores sobre el stack elegido. Se instala `better-auth` con el
+adaptador `drizzleAdapter(db, { provider: "pg", schema })`, reutilizando el `db` (Pool de Neon) y el
+barrel del esquema. La config vive en `src/lib/auth.ts` y se monta en `/api/auth/[...all]`
+(`toNextJsHandler`). Solo email y contraseña por ahora; Google, registro, login/logout, protección de
+`/panel` y la recuperación por email quedan para las tareas siguientes de la etapa.
+**Tablas**: `user`/`account`/`session`/`verification` se generan con `npx @better-auth/cli generate`
+en un **único** `src/db/schema/auth.ts` (no se editan a mano salvo los campos adicionales de `user`).
+Los `timestamp` que emite la CLI quedan **sin** `timestamptz` (convención propia de Better Auth); se
+aceptan así para no tocar tablas gestionadas por su CLI y poder regenerarlas sin fricción.
+**Campos adicionales de `user`**: `supplier_id` se declara en `auth.ts` como `uuid NOT NULL` con FK a
+`suppliers.id` (Better Auth lo maneja como string; `required: true, input: false` para que lo
+inyecte el registro, no el cliente) e índice `user_supplier_id_idx`; `role` como enum `user_role`
+(`owner`/`staff`, default `owner`). Nace `NOT NULL` porque la tabla está vacía y el registro lo
+poblará vía hook.
+**FKs cerradas**: `price_update_batches.created_by`, `price_changes.created_by` y
+`order_events.actor_user_id` (todas `text`) ahora referencian `user.id`. Cierra la deuda de la entrada
+"Tablas de Better Auth diferidas a Etapa 1". Migración `0001_dear_deathbird.sql`.
+**Descartado por ahora**: tabla `users` propia (ver entrada de modelo de datos); dividir las tablas de
+Better Auth en un archivo por tabla (complica regenerar con la CLI).
+
 ## 2026-11-04 · Seed artesanal con reset en transacción
 
 **Motivo**: `src/db/seed.ts` recarga la base dev con datos realistas de kiosco argentino (1 proveedor,

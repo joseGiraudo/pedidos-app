@@ -19,7 +19,7 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 
 ## Etapa 1 — Cuentas
 
-- [ ] Better Auth con email y contraseña
+- [x] Better Auth con email y contraseña
 - [ ] "Entrar con Google" (credenciales OAuth en Google Cloud Console)
 - [ ] Registro: crea `supplier` + `user` (owner), también en el primer ingreso con Google
 - [ ] Login, logout y protección de `/panel`
