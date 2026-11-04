@@ -130,6 +130,32 @@ poblará vía hook.
 **Descartado por ahora**: tabla `users` propia (ver entrada de modelo de datos); dividir las tablas de
 Better Auth en un archivo por tabla (complica regenerar con la CLI).
 
+## 2026-11-04 · UI con shadcn/ui (Base UI) + React Hook Form + Zod
+
+**Motivo**: se inicializa shadcn/ui para todas las pantallas. La versión actual del CLI (`shadcn@4`)
+genera componentes sobre **@base-ui/react** (no Radix) y usa `cn` del paquete `cn`, `lucide-react`,
+`class-variance-authority` y `tw-animate-css`. Los componentes viven en `src/components/ui`. Formularios
+con React Hook Form + `@hookform/resolvers` validando contra esquemas Zod. Nota: el componente `form`
+del registro no se generó con el CLI; los formularios se arman con RHF directo sobre `Input`/`Label`/
+`Button` y mensajes de error propios.
+**Esquemas de validación**: en `src/lib/validations/` (p. ej. `auth.ts`), compartidos entre cliente
+(RHF) y servidor (server actions y hooks de Better Auth), para validar una sola vez la misma forma.
+
+## 2026-11-04 · Registro crea supplier + user (owner) con un hook de Better Auth
+
+**Motivo**: `user.supplier_id` es `NOT NULL` con FK, así que el supplier debe existir al insertar el
+user. Se resuelve con `databaseHooks.user.create.before`: lee del body del alta el nombre del comercio
+y el WhatsApp (el body de `signUpEmail` es `z.object(...).and(z.record(...))`, conserva campos extra),
+los valida con `supplierSignupSchema`, crea el `supplier` e inyecta `supplierId` en el user. Así
+`supplier_id` y `role` quedan como `input: false` (no los setea el cliente). El alta es una **server
+action** que valida con `registerSchema` y llama `auth.api.signUpEmail`; el plugin `nextCookies()`
+persiste la cookie de sesión y luego redirige a `/panel`. Pantalla en `src/app/(auth)/registro`.
+**Alcance**: solo email y contraseña. "Entrar con Google" (y el alta de supplier en el primer ingreso
+con Google), login/logout, protección de `/panel` por middleware y recuperación por email quedan para
+las tareas siguientes de la Etapa 1. `/panel` tiene por ahora un guard mínimo de sesión.
+**Descartado**: pasar `supplier_id` por el cliente en el signup (inseguro: permitiría adjuntarse a otro
+proveedor); crear el user primero y actualizar después (imposible con `NOT NULL`).
+
 ## 2026-11-04 · Seed artesanal con reset en transacción
 
 **Motivo**: `src/db/seed.ts` recarga la base dev con datos realistas de kiosco argentino (1 proveedor,

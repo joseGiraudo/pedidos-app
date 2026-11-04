@@ -6,7 +6,7 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 
 - [ ] Crear proyecto Next.js (App Router) + TypeScript estricto
 - [x] Configurar ESLint y Prettier; scripts `lint`, `typecheck`, `test`
-- [ ] Instalar Tailwind y shadcn/ui
+- [x] Instalar Tailwind y shadcn/ui
 - [ ] Crear base en Neon con ramas `dev` y `main` (producción); `.env.example`
 - [x] Configurar Drizzle y escribir el esquema completo (`docs/modelo-de-datos.md`)
 - [x] Primera migración e índices (`supplier_id`, `pg_trgm` en `products.name`)
