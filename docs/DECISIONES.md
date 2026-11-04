@@ -36,6 +36,15 @@ Registro de decisiones y su porqué. Formato: fecha · decisión · motivo · al
 **Motivo**: simple y suficiente para 10–50 proveedores. Todo acceso pasa por `src/lib/tenant.ts`.
 **Posible mejora**: Row Level Security de Postgres.
 
+## 2026-11-04 · `tenant.ts` como primitivas tipadas con contexto explícito
+
+**Motivo**: `tenant.ts` expone primitivas chicas —`tenantEq` (WHERE por `supplier_id`), `withTenant`
+(estampa el proveedor al insertar) y `assertOwned` (guarda de pertenencia tras leer por `id`)— en vez
+de una capa de repositorios por entidad, que obligaría a adivinar interfaces antes de tener las
+pantallas. El proveedor viaja en un contexto explícito `Tenant = { supplierId }`; `getCurrentTenant()`
+desde la sesión de Better Auth se agrega en Etapa 1.
+**Descartado por ahora**: repositorios por entidad (`productsRepo(tenant).list()`…).
+
 ## 2026-11-04 · Dinero en `numeric`, cantidades en `numeric(10,3)`
 
 **Motivo**: evitar errores de redondeo de `float`; soportar venta por kilo.

@@ -10,7 +10,7 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 - [ ] Crear base en Neon con ramas `dev` y `main` (producción); `.env.example`
 - [x] Configurar Drizzle y escribir el esquema completo (`docs/modelo-de-datos.md`)
 - [x] Primera migración e índices (`supplier_id`, `pg_trgm` en `products.name`)
-- [ ] Helpers de acceso por proveedor (`src/lib/tenant.ts`)
+- [x] Helpers de acceso por proveedor (`src/lib/tenant.ts`)
 - [ ] Script de seed con datos realistas
 - [ ] Configurar Vitest y un test de ejemplo
 - [ ] GitHub Actions: lint + typecheck + tests en cada push
