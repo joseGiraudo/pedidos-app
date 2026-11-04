@@ -168,6 +168,19 @@ redirigen a `/panel` si ya hay sesión. Logout con `<form action={logout}>` en e
 **Descartado**: validar la sesión contra la base dentro del middleware (no se puede en edge sin el
 driver; además el chequeo de cookie + validación en la página alcanza).
 
+## 2026-11-04 · Recuperación de contraseña por email (Resend)
+
+**Motivo**: se usa el flujo nativo de Better Auth: `requestPasswordReset` genera un token (tabla
+`verification`, un solo uso, vence en 1 h) y llama a `emailAndPassword.sendResetPassword`, que envía el
+link; la página `/reset-password` recibe el token y `resetPassword` fija la nueva clave. Envío de
+emails con **Resend** vía `src/lib/email.ts`; si no hay `RESEND_API_KEY` (desarrollo), el link se
+**imprime por consola** en vez de enviarse, así el flujo es probable sin configurar nada. `EMAIL_FROM`
+configurable (default: dominio de prueba de Resend). Se activa `revokeSessionsOnPasswordReset` para
+cerrar las demás sesiones al cambiar la clave. Pantallas `/recuperar` y `/reset-password`; el pedido no
+revela si el email existe. Server actions con Zod (`forgotPasswordSchema`, `resetPasswordSchema` con
+confirmación).
+**Descartado por ahora**: SMTP propio (Nodemailer) y verificación de email en el alta (no se exige).
+
 ## 2026-11-04 · Seed artesanal con reset en transacción
 
 **Motivo**: `src/db/seed.ts` recarga la base dev con datos realistas de kiosco argentino (1 proveedor,

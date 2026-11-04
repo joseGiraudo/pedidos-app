@@ -42,3 +42,23 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type LoginFormValues = z.input<typeof loginSchema>;
+
+/** Pedido de recuperación de contraseña (solo el email). */
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().pipe(z.email("Email inválido")),
+});
+
+export type ForgotPasswordFormValues = z.input<typeof forgotPasswordSchema>;
+
+/** Elección de la nueva contraseña. */
+export const resetPasswordSchema = z
+  .object({
+    password: z.string().min(8, "Mínimo 8 caracteres").max(128, "Máximo 128 caracteres"),
+    confirmPassword: z.string().min(1, "Repetí la contraseña"),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  });
+
+export type ResetPasswordFormValues = z.input<typeof resetPasswordSchema>;

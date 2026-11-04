@@ -5,6 +5,7 @@ import { nextCookies } from "better-auth/next-js";
 
 import { db } from "../db";
 import * as schema from "../db/schema";
+import { sendPasswordResetEmail } from "./email";
 import { supplierSignupSchema } from "./validations/auth";
 
 // Configuración de Better Auth. También la lee su CLI para generar las tablas
@@ -14,7 +15,14 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg", schema }),
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
-  emailAndPassword: { enabled: true },
+  emailAndPassword: {
+    enabled: true,
+    // Al restablecer la contraseña, se cierran las demás sesiones del usuario.
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      await sendPasswordResetEmail(user.email, url);
+    },
+  },
   user: {
     additionalFields: {
       // Proveedor al que pertenece el usuario. Lo setea el servidor (hook de abajo),
