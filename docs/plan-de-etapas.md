@@ -13,7 +13,7 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 - [x] Helpers de acceso por proveedor (`src/lib/tenant.ts`)
 - [x] Script de seed con datos realistas
 - [ ] Configurar Vitest y un test de ejemplo
-- [ ] GitHub Actions: lint + typecheck + tests en cada push
+- [x] GitHub Actions: lint + typecheck + tests en cada push
 - [ ] Deploy en Vercel conectado al repo
 - [ ] README inicial
 
