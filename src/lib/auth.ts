@@ -8,13 +8,26 @@ import * as schema from "../db/schema";
 import { sendPasswordResetEmail } from "./email";
 import { supplierSignupSchema } from "./validations/auth";
 
+// Google solo se habilita si están las credenciales (si no, se omite el provider).
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const socialProviders =
+  googleClientId && googleClientSecret
+    ? { google: { clientId: googleClientId, clientSecret: googleClientSecret } }
+    : undefined;
+
+/** Nombre inicial del comercio para altas sociales (Google), editable luego. */
+function deriveSupplierName(user: { name?: string | null; email?: string | null }): string {
+  return user.name?.trim() || user.email?.split("@")[0] || "Mi comercio";
+}
+
 // Configuración de Better Auth. También la lee su CLI para generar las tablas
-// (`npx @better-auth/cli generate`). Por ahora solo email y contraseña; Google y
-// la verificación/recuperación por email llegan más adelante en la Etapa 1.
+// (`npx @better-auth/cli generate`). Email y contraseña + Google.
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg", schema }),
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
+  socialProviders,
   emailAndPassword: {
     enabled: true,
     // Al restablecer la contraseña, se cierran las demás sesiones del usuario.
@@ -35,22 +48,30 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        // Antes de crear el usuario, creamos su `supplier` con los datos del comercio
-        // que viajan en el body del alta e inyectamos el supplier_id. Así el registro
-        // crea supplier + user (owner) de forma atómica desde la perspectiva del alta.
+        // Antes de crear el usuario, creamos su `supplier` e inyectamos el supplier_id.
+        // Alta por email: usa el nombre del comercio y el WhatsApp del body. Alta con
+        // Google (u otro social): deriva el nombre del perfil y deja el WhatsApp vacío
+        // (se completa en Configuración). Así el alta crea supplier + user (owner).
         before: async (user, context) => {
           const parsed = supplierSignupSchema.safeParse(context?.body ?? {});
-          if (!parsed.success) {
+          let supplierValues: { name: string; whatsappPhone: string | null };
+          if (parsed.success) {
+            supplierValues = {
+              name: parsed.data.businessName,
+              whatsappPhone: parsed.data.whatsapp,
+            };
+          } else if (context?.path === "/sign-up/email") {
+            // El alta por email siempre debe traer los datos del comercio.
             throw new APIError("BAD_REQUEST", {
               message: "Faltan los datos del comercio para crear la cuenta",
             });
+          } else {
+            supplierValues = { name: deriveSupplierName(user), whatsappPhone: null };
           }
+
           const [supplier] = await db
             .insert(schema.suppliers)
-            .values({
-              name: parsed.data.businessName,
-              whatsappPhone: parsed.data.whatsapp,
-            })
+            .values(supplierValues)
             .returning({ id: schema.suppliers.id });
 
           return { data: { ...user, supplierId: supplier.id } };

@@ -20,8 +20,8 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 ## Etapa 1 — Cuentas
 
 - [x] Better Auth con email y contraseña
-- [ ] "Entrar con Google" (credenciales OAuth en Google Cloud Console)
-- [ ] Registro: crea `supplier` + `user` (owner), también en el primer ingreso con Google
+- [x] "Entrar con Google" (credenciales OAuth en Google Cloud Console)
+- [x] Registro: crea `supplier` + `user` (owner), también en el primer ingreso con Google
 - [x] Login, logout y protección de `/panel`
 - [x] Recuperación de contraseña por email (Resend u otro)
 - [x] Pantalla de configuración: nombre, WhatsApp, uso de marcas/categorías/códigos propios

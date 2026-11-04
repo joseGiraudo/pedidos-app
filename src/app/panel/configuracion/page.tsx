@@ -43,7 +43,7 @@ export default async function ConfiguracionPage() {
           <ConfigForm
             defaults={{
               name: supplier.name,
-              whatsapp: supplier.whatsappPhone,
+              whatsapp: supplier.whatsappPhone ?? "",
               useBrands: supplier.useBrands,
               useCategories: supplier.useCategories,
               usesOwnCodes: supplier.usesOwnCodes,

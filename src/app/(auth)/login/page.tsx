@@ -3,10 +3,13 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { GoogleButton } from "@/components/google-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
 
 import { LoginForm } from "./login-form";
+
+const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID);
 
 export const metadata: Metadata = {
   title: "Iniciar sesión",
@@ -34,6 +37,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             </p>
           )}
           <LoginForm />
+          {googleEnabled && (
+            <>
+              <div className="text-muted-foreground flex items-center gap-3 text-xs">
+                <span className="bg-border h-px flex-1" />o
+                <span className="bg-border h-px flex-1" />
+              </div>
+              <GoogleButton />
+            </>
+          )}
           <p className="text-muted-foreground flex justify-between gap-2 text-sm">
             <Link href="/recuperar" className="text-primary underline-offset-4 hover:underline">
               ¿Olvidaste tu contraseña?

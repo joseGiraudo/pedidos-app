@@ -6,7 +6,9 @@ import { id, timestamps } from "./_shared";
 export const suppliers = pgTable("suppliers", {
   id,
   name: text("name").notNull(),
-  whatsappPhone: text("whatsapp_phone").notNull(),
+  // Opcional: el alta con Google crea el proveedor sin WhatsApp; se completa en
+  // Configuración. El registro por email sí lo exige.
+  whatsappPhone: text("whatsapp_phone"),
   logoUrl: text("logo_url"),
   plan: supplierPlan("plan").notNull().default("free"),
   useBrands: boolean("use_brands").notNull().default(true),

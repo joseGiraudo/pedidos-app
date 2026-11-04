@@ -192,6 +192,19 @@ del cliente), valida con Zod (`supplierConfigSchema`, reusa `normalizeWhatsapp`)
 Los tres flags se editan con checkboxes nativos registrados con React Hook Form (evita `Controller` y
 componentes extra). `logo_url` queda fuera (imágenes son post-MVP).
 
+## 2026-11-04 · "Entrar con Google" y `whatsapp_phone` opcional
+
+**Motivo**: se agrega Google como `socialProviders.google` (solo si están `GOOGLE_CLIENT_ID` /
+`GOOGLE_CLIENT_SECRET`; si no, el provider se omite y las pantallas no muestran el botón). El flujo
+OAuth no pasa por el formulario de registro, así que el hook `user.create.before` ahora ramifica: si el
+body trae nombre de comercio + WhatsApp válidos (alta por email), los usa; si es el alta por email y
+faltan, 400; en cualquier otro caso (alta social) crea el `supplier` con el nombre derivado del perfil
+de Google y **WhatsApp vacío**. Para eso `suppliers.whatsapp_phone` pasó a **nullable** (migración
+`0002`); el usuario de Google completa el WhatsApp en Configuración (que lo exige al guardar). El
+registro por email lo sigue pidiendo. Botón `signIn.social({ provider: "google", callbackURL: "/panel" })`.
+**Pendiente de verificación en vivo**: el callback real requiere credenciales de Google + navegador.
+**Nota**: Next 16 deprecó el archivo `middleware` a favor de `proxy` (solo warning; sigue funcionando).
+
 ## 2026-11-04 · Seed artesanal con reset en transacción
 
 **Motivo**: `src/db/seed.ts` recarga la base dev con datos realistas de kiosco argentino (1 proveedor,

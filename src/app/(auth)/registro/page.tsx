@@ -3,10 +3,13 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { GoogleButton } from "@/components/google-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
 
 import { RegisterForm } from "./register-form";
+
+const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID);
 
 export const metadata: Metadata = {
   title: "Crear cuenta",
@@ -29,6 +32,15 @@ export default async function RegistroPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <RegisterForm />
+          {googleEnabled && (
+            <>
+              <div className="text-muted-foreground flex items-center gap-3 text-xs">
+                <span className="bg-border h-px flex-1" />o
+                <span className="bg-border h-px flex-1" />
+              </div>
+              <GoogleButton />
+            </>
+          )}
           <p className="text-muted-foreground text-sm">
             ¿Ya tenés cuenta?{" "}
             <Link href="/login" className="text-primary underline-offset-4 hover:underline">

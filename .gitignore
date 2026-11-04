@@ -16,6 +16,8 @@
 # next.js
 /.next/
 /out/
+# generado por el experimento agentFeedback de Next
+/AGENTS.md
 
 # production
 /build
