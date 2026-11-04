@@ -1,5 +1,6 @@
 import { index, integer, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
+import { user } from "./auth";
 import { priceBatchKind, priceTarget } from "./_enums";
 import { id, timestamps } from "./_shared";
 import { suppliers } from "./suppliers";
@@ -17,8 +18,9 @@ export const priceUpdateBatches = pgTable(
     rounding: integer("rounding"),
     target: priceTarget("target").notNull(),
     affectedCount: integer("affected_count").notNull().default(0),
-    // user.id (Better Auth, texto). Sin FK hasta la Etapa 1.
-    createdBy: text("created_by").notNull(),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id),
     revertedAt: timestamp("reverted_at", { withTimezone: true }),
     ...timestamps,
   },

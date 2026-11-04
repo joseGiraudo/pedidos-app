@@ -6,7 +6,7 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 
 - [ ] Crear proyecto Next.js (App Router) + TypeScript estricto
 - [x] Configurar ESLint y Prettier; scripts `lint`, `typecheck`, `test`
-- [ ] Instalar Tailwind y shadcn/ui
+- [x] Instalar Tailwind y shadcn/ui
 - [ ] Crear base en Neon con ramas `dev` y `main` (producción); `.env.example`
 - [x] Configurar Drizzle y escribir el esquema completo (`docs/modelo-de-datos.md`)
 - [x] Primera migración e índices (`supplier_id`, `pg_trgm` en `products.name`)
@@ -19,13 +19,13 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 
 ## Etapa 1 — Cuentas
 
-- [ ] Better Auth con email y contraseña
-- [ ] "Entrar con Google" (credenciales OAuth en Google Cloud Console)
-- [ ] Registro: crea `supplier` + `user` (owner), también en el primer ingreso con Google
-- [ ] Login, logout y protección de `/panel`
-- [ ] Recuperación de contraseña por email (Resend u otro)
-- [ ] Pantalla de configuración: nombre, WhatsApp, uso de marcas/categorías/códigos propios
-- [ ] Test e2e de registro y login
+- [x] Better Auth con email y contraseña
+- [x] "Entrar con Google" (credenciales OAuth en Google Cloud Console)
+- [x] Registro: crea `supplier` + `user` (owner), también en el primer ingreso con Google
+- [x] Login, logout y protección de `/panel`
+- [x] Recuperación de contraseña por email (Resend u otro)
+- [x] Pantalla de configuración: nombre, WhatsApp, uso de marcas/categorías/códigos propios
+- [x] Test e2e de registro y login
 
 ## Etapa 2 — Catálogo
 

@@ -1,6 +1,7 @@
 // Barrel del esquema Drizzle. Las tablas de Better Auth (user/account/session/
-// verification) se agregan en la Etapa 1 con su CLI.
+// verification) viven en ./auth, generadas con su CLI.
 export * from "./_enums";
+export * from "./auth";
 export * from "./suppliers";
 export * from "./categories";
 export * from "./brands";

@@ -1,5 +1,6 @@
 import { index, numeric, pgTable, text, uuid } from "drizzle-orm/pg-core";
 
+import { user } from "./auth";
 import { id, timestamps } from "./_shared";
 import { priceUpdateBatches } from "./price-update-batches";
 import { products } from "./products";
@@ -18,8 +19,9 @@ export const priceChanges = pgTable(
     newWholesale: numeric("new_wholesale", { precision: 12, scale: 2 }),
     oldRetail: numeric("old_retail", { precision: 12, scale: 2 }),
     newRetail: numeric("new_retail", { precision: 12, scale: 2 }),
-    // user.id (Better Auth, texto). Sin FK hasta la Etapa 1.
-    createdBy: text("created_by").notNull(),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id),
     ...timestamps,
   },
   (t) => [

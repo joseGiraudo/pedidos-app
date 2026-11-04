@@ -1,5 +1,6 @@
 import { index, jsonb, pgTable, text, uuid } from "drizzle-orm/pg-core";
 
+import { user } from "./auth";
 import { orderActor, orderEventType, orderStatus } from "./_enums";
 import { id, timestamps } from "./_shared";
 import { orders } from "./orders";
@@ -19,8 +20,7 @@ export const orderEvents = pgTable(
     fromStatus: orderStatus("from_status"),
     toStatus: orderStatus("to_status"),
     actor: orderActor("actor").notNull(),
-    // user.id (Better Auth, texto). Sin FK hasta la Etapa 1.
-    actorUserId: text("actor_user_id"),
+    actorUserId: text("actor_user_id").references(() => user.id),
     note: text("note"),
     changes: jsonb("changes"),
     ...timestamps,

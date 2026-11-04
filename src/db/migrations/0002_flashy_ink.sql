@@ -1,0 +1,1 @@
+ALTER TABLE "suppliers" ALTER COLUMN "whatsapp_phone" DROP NOT NULL;
