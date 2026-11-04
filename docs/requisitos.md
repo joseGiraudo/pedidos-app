@@ -35,11 +35,11 @@ Queda para después:
 
 Plataforma multi-proveedor: 10 a 50 proveedores, cada uno con sus clientes, artículos y pedidos totalmente separados.
 
-| Rol | Acceso | Qué hace |
-| --- | --- | --- |
-| Proveedor | Se registra solo con email y contraseña, o con "Entrar con Google" | Carga artículos, gestiona precios, da de alta clientes, gestiona pedidos |
-| Kiosquero (cliente) | Link personal, sin cuenta | Consulta la lista, arma y envía pedidos, ve su historial |
-| Administrador | Cuenta interna | Suspende proveedores y da soporte |
+| Rol                 | Acceso                                                             | Qué hace                                                                 |
+| ------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| Proveedor           | Se registra solo con email y contraseña, o con "Entrar con Google" | Carga artículos, gestiona precios, da de alta clientes, gestiona pedidos |
+| Kiosquero (cliente) | Link personal, sin cuenta                                          | Consulta la lista, arma y envía pedidos, ve su historial                 |
+| Administrador       | Cuenta interna                                                     | Suspende proveedores y da soporte                                        |
 
 ## Acceso del kiosquero: link personal
 
@@ -51,17 +51,17 @@ Plataforma multi-proveedor: 10 a 50 proveedores, cada uno con sus clientes, art�
 
 ## Catálogo de artículos
 
-| Campo | Obligatorio | Notas |
-| --- | --- | --- |
-| Código | Sí (generado si el proveedor no usa códigos) | Único por proveedor; clave para cruzar al importar |
-| Nombre | Sí | |
-| Marca | No | Si falta o no se usan marcas: "Sin marca" |
-| Categoría | No | Si falta o no se usan categorías: "Sin categoría" |
-| Presentación | No | Unidad, caja x 24, horma |
-| Precio mayorista | Sí | |
-| Precio minorista | No | Si está vacío se usa el mayorista |
-| Disponible | Sí | "Sin stock" sin borrar |
-| Imagen | No | Post-MVP |
+| Campo            | Obligatorio                                  | Notas                                              |
+| ---------------- | -------------------------------------------- | -------------------------------------------------- |
+| Código           | Sí (generado si el proveedor no usa códigos) | Único por proveedor; clave para cruzar al importar |
+| Nombre           | Sí                                           |                                                    |
+| Marca            | No                                           | Si falta o no se usan marcas: "Sin marca"          |
+| Categoría        | No                                           | Si falta o no se usan categorías: "Sin categoría"  |
+| Presentación     | No                                           | Unidad, caja x 24, horma                           |
+| Precio mayorista | Sí                                           |                                                    |
+| Precio minorista | No                                           | Si está vacío se usa el mayorista                  |
+| Disponible       | Sí                                           | "Sin stock" sin borrar                             |
+| Imagen           | No                                           | Post-MVP                                           |
 
 - Filtros por categoría, marca y disponibilidad; buscador por nombre o código.
 - Selección múltiple para acciones masivas: cambiar precio, marcar sin stock, cambiar categoría.
@@ -89,7 +89,7 @@ Plataforma multi-proveedor: 10 a 50 proveedores, cada uno con sus clientes, art�
 - **Comparación tolerante**: ignora espacios sobrantes y mayúsculas.
 - **Códigos duplicados en la planilla**: error en la vista previa, no se importan.
 - **Ceros a la izquierda**: el código es texto; al exportar a Excel va con formato texto; al importar se avisa si parecen haberse perdido.
-- **Modo de importación**: *Agregar y actualizar* (default), *Solo agregar nuevos*, *Solo actualizar precios*.
+- **Modo de importación**: _Agregar y actualizar_ (default), _Solo agregar nuevos_, _Solo actualizar precios_.
 - **Celdas vacías** no borran datos existentes.
 - **Posibles duplicados**: mismo nombre y presentación con distinto código → el proveedor elige "es el mismo" (se vincula y se reemplaza el código generado) o "es otro".
 - **Artículos que no están en la planilla**: dejarlos, marcarlos sin stock o darlos de baja (elige el proveedor).

@@ -5,7 +5,7 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 ## Etapa 0 — Base
 
 - [ ] Crear proyecto Next.js (App Router) + TypeScript estricto
-- [ ] Configurar ESLint y Prettier; scripts `lint`, `typecheck`, `test`
+- [x] Configurar ESLint y Prettier; scripts `lint`, `typecheck`, `test`
 - [ ] Instalar Tailwind y shadcn/ui
 - [ ] Crear base en Neon con ramas `dev` y `main` (producción); `.env.example`
 - [ ] Configurar Drizzle y escribir el esquema completo (`docs/modelo-de-datos.md`)
