@@ -72,3 +72,29 @@ numeración de pedidos con `next_order_number` y transiciones de estado con `ord
 `drizzle-orm/neon-serverless` sobre `Pool` de `@neondatabase/serverless` las soporta; `neon-http` no.
 La app usa la conexión pooled (`DATABASE_URL`); `drizzle-kit` usa la directa (`DATABASE_URL_UNPOOLED`).
 **Descartado**: `neon-http` (más liviano pero sin transacciones interactivas).
+
+## 2026-11-04 · `order_items` y `price_changes` sin `supplier_id`
+
+**Motivo**: son tablas hijas a las que siempre se llega por su padre (`orders` / `products`, que sí
+tienen `supplier_id`). La aislación por proveedor la impone `src/lib/tenant.ts` por join, sin
+denormalizar la columna. `order_events` sí lleva `supplier_id` porque se consulta como feed directo.
+**Matiz de la regla** "toda tabla de negocio tiene `supplier_id`": aplica a las tablas raíz; las hijas
+puras heredan la tenencia del padre.
+
+## 2026-11-04 · Índice `pg_trgm` sobre `products.name` desde la primera migración
+
+**Motivo**: el buscador del catálogo filtra por nombre con coincidencias parciales; un índice GIN
+`gin_trgm_ops` lo hace rápido con 1.000+ artículos. La migración `0000` crea
+`CREATE EXTENSION IF NOT EXISTS pg_trgm` (drizzle-kit no lo agrega solo).
+
+## 2026-11-04 · Enums como `pgEnum`; `updated_at` vía `$onUpdate`
+
+**Motivo**: los estados cerrados (estado de pedido, listas, etc.) van como enums nativos de Postgres
+(`pgEnum`) para integridad en la base. `updated_at` se refresca con `.$onUpdate()` a nivel ORM (no
+trigger); alcanza porque toda escritura pasa por Drizzle.
+
+## 2026-11-04 · Tablas de Better Auth diferidas a Etapa 1
+
+**Motivo**: las genera la CLI de Better Auth y no se editan a mano. En la primera migración las
+columnas que apuntan a un usuario (`created_by`, `actor_user_id`) quedan como `text` **sin FK**; las
+tablas `user`/`account`/`session`/`verification` y sus FKs se agregan al configurar Better Auth.
