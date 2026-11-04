@@ -34,7 +34,7 @@ export async function register(values: RegisterFormValues): Promise<RegisterResu
   } catch (err) {
     if (err instanceof APIError) {
       const body = err.body as { code?: string; message?: string } | undefined;
-      if (body?.code === "USER_ALREADY_EXISTS") {
+      if (body?.code?.startsWith("USER_ALREADY_EXISTS")) {
         return { error: "Ya existe una cuenta con ese email." };
       }
       return { error: body?.message ?? "No se pudo crear la cuenta." };
