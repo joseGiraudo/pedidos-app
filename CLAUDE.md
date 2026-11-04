@@ -7,7 +7,7 @@ Webapp multi-proveedor para que proveedores de kioscos y almacenes gestionen su 
 - Next.js (App Router) + TypeScript (modo estricto)
 - Tailwind + shadcn/ui · TanStack Table · React Hook Form + Zod
 - PostgreSQL en Neon · Drizzle ORM (migraciones versionadas)
-- Better Auth (email y contraseña, solo proveedores)
+- Better Auth (email y contraseña + Google, solo proveedores)
 - Papa Parse + SheetJS (CSV y Excel)
 - Vitest (unitarios) + Playwright (end-to-end)
 - GitHub Actions (CI) · Vercel (hosting)

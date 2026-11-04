@@ -21,6 +21,10 @@ Registro de decisiones y su porqué. Formato: fecha · decisión · motivo · al
 ## 2026-11-04 · Registro de proveedores sin aprobación
 **Motivo**: simplicidad; el control de crecimiento se hará con planes y límites de uso más adelante.
 
+## 2026-11-04 · Login con email y contraseña + Google
+**Motivo**: reducir la fricción de entrada; muchos proveedores tienen Gmail y así no necesitan recordar otra contraseña. En el modelo es solo otra fila en `account`.
+**Descartado por ahora**: código por WhatsApp o SMS (costo por mensaje y más complejidad); link mágico por email (depende de que revisen el correo).
+
 ## 2026-11-04 · Multi-tenant por columna `supplier_id`
 **Motivo**: simple y suficiente para 10–50 proveedores. Todo acceso pasa por `src/lib/tenant.ts`.
 **Posible mejora**: Row Level Security de Postgres.

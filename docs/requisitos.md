@@ -13,7 +13,7 @@ Webapp donde cada proveedor de kioscos y almacenes mantiene su lista de artícul
 
 Entra:
 
-- Registro y login del proveedor.
+- Registro y login del proveedor con email y contraseña o con Google.
 - Catálogo con categorías y marcas (opcionales), filtros y buscador; artículos por unidad y por peso.
 - Precios mayorista y minorista, descuento por cliente, edición directa y aumento masivo por % con vista previa y redondeo.
 - Importación (CSV y Excel) y exportación.
@@ -37,7 +37,7 @@ Plataforma multi-proveedor: 10 a 50 proveedores, cada uno con sus clientes, art�
 
 | Rol | Acceso | Qué hace |
 | --- | --- | --- |
-| Proveedor | Se registra solo con email y contraseña | Carga artículos, gestiona precios, da de alta clientes, gestiona pedidos |
+| Proveedor | Se registra solo con email y contraseña, o con "Entrar con Google" | Carga artículos, gestiona precios, da de alta clientes, gestiona pedidos |
 | Kiosquero (cliente) | Link personal, sin cuenta | Consulta la lista, arma y envía pedidos, ve su historial |
 | Administrador | Cuenta interna | Suspende proveedores y da soporte |
 

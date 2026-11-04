@@ -4,7 +4,9 @@ PostgreSQL. Tablas y campos en inglés. Todas las tablas tienen `created_at` y `
 
 ```mermaid
 erDiagram
-  suppliers ||--o{ users : "tiene"
+  suppliers ||--o{ user : "tiene"
+  user ||--o{ account : "inicia sesión con"
+  user ||--o{ session : "tiene"
   suppliers ||--o{ customers : "tiene"
   suppliers ||--o{ categories : "tiene"
   suppliers ||--o{ brands : "tiene"
@@ -36,16 +38,33 @@ erDiagram
 | next_order_number | int | Contador de pedidos |
 | is_active | bool | Suspensión por el admin |
 
-## users (usuarios del panel)
+## Autenticación (Better Auth)
+
+Better Auth crea y maneja sus tablas. Las generamos con su CLI para el esquema de Drizzle y no se editan a mano, salvo los campos adicionales de `user`.
+
+### user (usuarios del panel)
 
 | Campo | Tipo | Nota |
 | --- | --- | --- |
-| id, supplier_id | uuid | |
-| email | text, único | |
+| id | text | Lo genera Better Auth |
 | name | text | |
-| role | enum `owner` / `staff` | |
+| email | text, único | |
+| email_verified | bool | |
+| image | text, opcional | |
+| supplier_id | uuid | Campo adicional: proveedor al que pertenece |
+| role | enum `owner` / `staff` | Campo adicional |
 
-Better Auth agrega sus tablas de sesiones y cuentas.
+### account (formas de inicio de sesión)
+
+Una fila por cada forma de entrar del usuario: contraseña o, más adelante, Google. La contraseña se guarda como *hash*, nunca en texto plano.
+
+### session
+
+Sesiones activas por dispositivo, con vencimiento.
+
+### verification
+
+Tokens temporales: recuperación de contraseña y verificación de email.
 
 ## customers (kiosqueros)
 
@@ -99,7 +118,7 @@ Better Auth agrega sus tablas de sesiones y cuentas.
 | rounding | int, opcional | 10, 50, 100 |
 | target | enum `wholesale` / `retail` / `both` | |
 | affected_count | int | |
-| created_by | uuid | |
+| created_by | text | `user.id` |
 | reverted_at | timestamptz, opcional | Para deshacer |
 
 ## price_changes (historial de precios)
@@ -110,7 +129,7 @@ Better Auth agrega sus tablas de sesiones y cuentas.
 | batch_id | uuid, opcional | Vacío si fue edición individual |
 | old_wholesale, new_wholesale | numeric(12,2) | |
 | old_retail, new_retail | numeric(12,2) | |
-| created_by | uuid | |
+| created_by | text | `user.id` |
 
 ## orders (pedidos)
 
@@ -158,7 +177,7 @@ Better Auth agrega sus tablas de sesiones y cuentas.
 | event_type | enum | `created`, `sent`, `edited`, `changes_requested`, `item_replaced`, `accepted`, `weighed`, `delivered`, `payment_updated`, `rejected`, `cancelled` |
 | from_status, to_status | enum, opcional | |
 | actor | enum `customer` / `supplier` | |
-| actor_user_id | uuid, opcional | |
+| actor_user_id | text, opcional | `user.id` |
 | note | text, opcional | |
 | changes | jsonb, opcional | Detalle de cambios |
 | created_at | timestamptz | |
@@ -168,6 +187,7 @@ Better Auth agrega sus tablas de sesiones y cuentas.
 - **Copias en el pedido**: cada línea guarda código, nombre, marca, categoría y precio del momento.
 - **Dos identificadores**: `id` uuid interno e inmutable; `code` visible. Todo artículo tiene código (propio o generado). Cambiar un código no rompe el historial. El EAN, si se suma, va aparte.
 - **Marca y categoría con `NULL`**, no registros falsos.
+- **Usuarios con Better Auth**: se usa su tabla `user` extendida con `supplier_id` y `role`, en lugar de una tabla `users` propia, para no duplicar datos. Las contraseñas las maneja Better Auth (hash en `account`). Los campos que apuntan a un usuario son `text`.
 - **Dinero en `numeric`**, nunca `float`.
 - **`supplier_id` en todas las tablas** e índices que empiecen por él.
 - **Totales en el servidor**.
