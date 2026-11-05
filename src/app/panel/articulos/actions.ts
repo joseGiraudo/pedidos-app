@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
@@ -9,8 +9,8 @@ import { isUniqueViolation } from "@/lib/db-errors";
 import { getCurrentTenant } from "@/lib/session";
 import { assertOwned, tenantEq, withTenant } from "@/lib/tenant";
 import {
-  generateProductCode,
   makeProductSchema,
+  nextGeneratedCode,
   normalizeCode,
   toProductValues,
   type ProductFormValues,
@@ -55,15 +55,29 @@ export async function createProduct(values: ProductFormValues): Promise<ProductR
         code = normalizeCode(parsed.data.code);
         codeIsGenerated = false;
       } else {
-        // El sistema genera el código: toma el contador del proveedor y lo incrementa
-        // en la misma transacción para que dos altas no reciban el mismo número.
-        const [{ next }] = await tx
-          .update(suppliers)
-          .set({ nextProductCode: sql`${suppliers.nextProductCode} + 1` })
+        // El sistema genera el código. Bloquea la fila del proveedor para que dos altas
+        // concurrentes no elijan el mismo número, y salta los códigos ya tomados (p. ej. un
+        // código propio numérico o un generado del seed) para no fallar por una colisión.
+        const [{ from }] = await tx
+          .select({ from: suppliers.nextProductCode })
+          .from(suppliers)
           .where(eq(suppliers.id, tenant.supplierId))
-          .returning({ next: suppliers.nextProductCode });
-        code = generateProductCode(next - 1);
+          .for("update");
+
+        const rows = await tx
+          .select({ code: products.code })
+          .from(products)
+          .where(tenantEq(products, tenant));
+        const taken = new Set(rows.map((r) => r.code));
+
+        const gen = nextGeneratedCode(from, (c) => taken.has(c));
+        code = gen.code;
         codeIsGenerated = true;
+
+        await tx
+          .update(suppliers)
+          .set({ nextProductCode: gen.next })
+          .where(eq(suppliers.id, tenant.supplierId));
       }
 
       const [row] = await tx

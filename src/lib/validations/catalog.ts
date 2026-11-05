@@ -25,6 +25,21 @@ export function generateProductCode(n: number): string {
 }
 
 /**
+ * Primer código generado libre a partir de `from`, saltando los ya tomados (p. ej. un
+ * código propio numérico que coincida, o un generado previo del seed). Devuelve el código
+ * y el nuevo valor de `next_product_code` a guardar. Así la generación nunca falla por un
+ * código que ella misma produjo.
+ */
+export function nextGeneratedCode(
+  from: number,
+  isTaken: (code: string) => boolean,
+): { code: string; next: number } {
+  let n = Math.max(1, from);
+  while (isTaken(generateProductCode(n))) n++;
+  return { code: generateProductCode(n), next: n + 1 };
+}
+
+/**
  * Parsea un número en formato argentino (miles con punto, decimales con coma).
  * Devuelve `null` si está vacío o no es un número válido. No redondea.
  */

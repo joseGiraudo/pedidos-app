@@ -32,10 +32,10 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 - [x] ABM de categorías y marcas
 - [x] Lista de artículos con TanStack Table: filtros, buscador, paginación
 - [x] Alta y edición de artículo (por unidad y por peso)
-- [ ] Generación automática de códigos
+- [x] Generación automática de códigos
 - [ ] Baja lógica y "sin stock"
 - [ ] Ocultar marca/categoría si el proveedor no las usa
-- [ ] Tests de normalización y generación de códigos
+- [x] Tests de normalización y generación de códigos
 
 ## Etapa 3 — Precios
 

@@ -303,3 +303,20 @@ e incrementándolo en la **misma transacción** del insert (evita números repet
 ("sin stock") sí se incluye por ser un campo propio del artículo.
 **Descartado**: `<input type=number>` (rompe la coma decimal argentina); schema con `.transform` que
 cambie tipos (complica los genéricos de RHF/zodResolver); un componente `select` de shadcn.
+
+## 2026-11-05 · Generación de códigos a prueba de colisiones (Etapa 2)
+
+**Motivo**: formaliza la "Generación automática de códigos". Cuando el proveedor no usa códigos
+propios, el sistema los genera desde `suppliers.next_product_code` con `generateProductCode(n)`
+(relleno de ceros a 4 dígitos). El incremento ciego anterior podía chocar con un código ya
+existente —un código propio numérico de cuando `uses_own_codes` estaba en on, o un generado del
+seed sin ajustar el contador— y devolver "código duplicado" por un código que el usuario nunca
+tipeó. Ahora `createProduct`, dentro de su transacción: bloquea la fila del proveedor con
+`.for("update")` (serializa generaciones concurrentes), carga el set de `code` del proveedor y
+usa el helper **puro** `nextGeneratedCode(from, isTaken)` (en `catalog.ts`) que salta los
+tomados y devuelve el código libre + el nuevo contador. El helper síncrono queda 100%
+unit-testeable sin base (tests en `catalog.test.ts`); las actions se prueban a mano / e2e.
+**Descartado**: reintentar sobre el `UNIQUE` (`23505`) con savepoints (más complejo; en Postgres
+el error aborta la transacción salvo savepoint) — cargar el set de códigos y saltar en memoria es
+más simple y suficiente a la escala del MVP (~1.000 artículos). La generación durante la
+**importación** masiva es Etapa 4.

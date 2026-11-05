@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   generateProductCode,
   makeProductSchema,
+  nextGeneratedCode,
   normalizeCode,
   normalizeName,
   parseArgNumber,
@@ -42,6 +43,37 @@ describe("normalizeCode", () => {
   it("recorta, colapsa espacios y pasa a mayúsculas", () => {
     expect(normalizeCode("  alf-024 ")).toBe("ALF-024");
     expect(normalizeCode("abc   123")).toBe("ABC 123");
+  });
+
+  it("deja igual un código ya normalizado", () => {
+    expect(normalizeCode("ALF-024")).toBe("ALF-024");
+    expect(normalizeCode("0001")).toBe("0001");
+  });
+});
+
+describe("nextGeneratedCode", () => {
+  const none = () => false;
+
+  it("sin códigos tomados arranca en el contador y lo avanza en 1", () => {
+    expect(nextGeneratedCode(1, none)).toEqual({ code: "0001", next: 2 });
+  });
+
+  it("respeta un contador arbitrario", () => {
+    expect(nextGeneratedCode(42, none)).toEqual({ code: "0042", next: 43 });
+  });
+
+  it("salta los códigos ya tomados desde el inicio", () => {
+    const taken = new Set(["0001", "0002"]);
+    expect(nextGeneratedCode(1, (c) => taken.has(c))).toEqual({ code: "0003", next: 4 });
+  });
+
+  it("salta una colisión puntual en el medio", () => {
+    const taken = new Set(["0003"]);
+    expect(nextGeneratedCode(3, (c) => taken.has(c))).toEqual({ code: "0004", next: 5 });
+  });
+
+  it("nunca genera por debajo de 1", () => {
+    expect(nextGeneratedCode(0, none)).toEqual({ code: "0001", next: 2 });
   });
 });
 
