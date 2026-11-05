@@ -59,14 +59,18 @@ export default async function ArticulosPage({
   const brand = str(sp.brand);
   const availParam = str(sp.avail);
   const avail = availParam === "yes" || availParam === "no" ? availParam : "all";
+  const statusParam = str(sp.status);
+  const status = statusParam === "inactive" || statusParam === "all" ? statusParam : "active";
   const page = Math.max(1, Number(str(sp.page)) || 1);
 
   const sortParam = str(sp.sort);
   const sortKey: SortKey = sortParam in sortableColumns ? (sortParam as SortKey) : "name";
   const dir = str(sp.dir) === "desc" ? "desc" : "asc";
 
-  // Solo artículos activos; la baja lógica se maneja en su propia tarea.
-  const conditions = [tenantEq(products, tenant), eq(products.isActive, true)];
+  // Por defecto solo activos; el filtro de estado permite ver los dados de baja.
+  const conditions = [tenantEq(products, tenant)];
+  if (status === "active") conditions.push(eq(products.isActive, true));
+  else if (status === "inactive") conditions.push(eq(products.isActive, false));
   if (q) {
     const search = or(ilike(products.name, `%${q}%`), ilike(products.code, `%${q}%`));
     if (search) conditions.push(search);
@@ -97,6 +101,7 @@ export default async function ArticulosPage({
       wholesalePrice: products.wholesalePrice,
       retailPrice: products.retailPrice,
       isAvailable: products.isAvailable,
+      isActive: products.isActive,
     })
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
@@ -140,7 +145,7 @@ export default async function ArticulosPage({
       </div>
 
       <ArticlesToolbar
-        defaults={{ q, cat, brand, avail }}
+        defaults={{ q, cat, brand, avail, status }}
         categories={categoryOptions}
         brands={brandOptions}
         useBrands={supplier.useBrands}

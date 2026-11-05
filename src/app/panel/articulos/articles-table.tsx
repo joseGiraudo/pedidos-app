@@ -14,6 +14,7 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
 
+import { ArticleRowActions } from "./article-row-actions";
 import { useUrlParams } from "./use-url-params";
 
 export type ProductRow = {
@@ -26,6 +27,7 @@ export type ProductRow = {
   wholesalePrice: string;
   retailPrice: string | null;
   isAvailable: boolean;
+  isActive: boolean;
 };
 
 type SortKey = "name" | "code" | "wholesale";
@@ -141,7 +143,11 @@ export function ArticlesTable({
         accessorKey: "isAvailable",
         header: "Estado",
         cell: ({ row }) =>
-          row.original.isAvailable ? (
+          !row.original.isActive ? (
+            <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              Dado de baja
+            </span>
+          ) : row.original.isAvailable ? (
             <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800 dark:bg-green-900/40 dark:text-green-300">
               Disponible
             </span>
@@ -150,6 +156,18 @@ export function ArticlesTable({
               Sin stock
             </span>
           ),
+      },
+      {
+        id: "actions",
+        header: () => <span className="sr-only">Acciones</span>,
+        cell: ({ row }) => (
+          <ArticleRowActions
+            id={row.original.id}
+            name={row.original.name}
+            isAvailable={row.original.isAvailable}
+            isActive={row.original.isActive}
+          />
+        ),
       },
     );
 
@@ -204,7 +222,10 @@ export function ArticlesTable({
               </tr>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-muted/30">
+                <tr
+                  key={row.id}
+                  className={cn("hover:bg-muted/30", !row.original.isActive && "opacity-60")}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}

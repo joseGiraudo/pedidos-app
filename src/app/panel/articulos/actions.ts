@@ -17,6 +17,7 @@ import {
 } from "@/lib/validations/catalog";
 
 export type ProductResult = { ok: true; id: string } | { error: string };
+export type ToggleResult = { ok: true } | { error: string };
 
 const SESSION_EXPIRED = "Tu sesión expiró. Volvé a iniciar sesión.";
 const DUPLICATE_CODE = "Ya existe un artículo con ese código.";
@@ -134,4 +135,41 @@ export async function updateProduct(
   revalidatePath("/panel/articulos");
   revalidatePath(`/panel/articulos/${id}/editar`);
   return { ok: true, id };
+}
+
+// Cambia un flag booleano de un artículo del proveedor logueado, validando pertenencia.
+async function setProductFlag(
+  id: string,
+  flag: Partial<Pick<typeof products.$inferInsert, "isActive" | "isAvailable">>,
+): Promise<ToggleResult> {
+  const tenant = await getCurrentTenant();
+  if (!tenant) return { error: SESSION_EXPIRED };
+
+  const [existing] = await db
+    .select({ id: products.id, supplierId: products.supplierId })
+    .from(products)
+    .where(and(eq(products.id, id), tenantEq(products, tenant)))
+    .limit(1);
+  assertOwned(existing, tenant);
+
+  await db
+    .update(products)
+    .set(flag)
+    .where(and(eq(products.id, id), tenantEq(products, tenant)));
+
+  revalidatePath("/panel/articulos");
+  return { ok: true };
+}
+
+/** Baja lógica: desactiva o reactiva un artículo (nunca se borra). */
+export async function setProductActive(id: string, isActive: boolean): Promise<ToggleResult> {
+  return setProductFlag(id, { isActive });
+}
+
+/** "Sin stock": marca el artículo como disponible o no, sin darlo de baja. */
+export async function setProductAvailable(
+  id: string,
+  isAvailable: boolean,
+): Promise<ToggleResult> {
+  return setProductFlag(id, { isAvailable });
 }

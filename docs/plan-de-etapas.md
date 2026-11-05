@@ -33,7 +33,7 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 - [x] Lista de artículos con TanStack Table: filtros, buscador, paginación
 - [x] Alta y edición de artículo (por unidad y por peso)
 - [x] Generación automática de códigos
-- [ ] Baja lógica y "sin stock"
+- [x] Baja lógica y "sin stock"
 - [ ] Ocultar marca/categoría si el proveedor no las usa
 - [x] Tests de normalización y generación de códigos
 

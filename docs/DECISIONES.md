@@ -320,3 +320,23 @@ unit-testeable sin base (tests en `catalog.test.ts`); las actions se prueban a m
 el error aborta la transacción salvo savepoint) — cargar el set de códigos y saltar en memoria es
 más simple y suficiente a la escala del MVP (~1.000 artículos). La generación durante la
 **importación** masiva es Etapa 4.
+
+## 2026-11-05 · Baja lógica y "sin stock" por fila (Etapa 2)
+
+**Motivo**: el artículo no se borra (regla de baja lógica), se desactiva (`is_active`), y
+"sin stock" (`is_available`) se alterna sin darlo de baja. Se resuelve con **acciones por
+fila** en `/panel/articulos`, no con selección múltiple (eso es Etapa 3). Dos server actions
+en `articulos/actions.ts`: `setProductActive(id, isActive)` y `setProductAvailable(id,
+isAvailable)`, ambas sobre un helper privado `setProductFlag` que valida pertenencia con
+`assertOwned` + `tenantEq` y `revalidatePath`. La UI es un componente cliente
+`article-row-actions.tsx` (botones-ícono con `useTransition` + `router.refresh()` + `toast`,
+mismo patrón que `taxonomy-manager`) montado en una columna "Acciones" de `articles-table.tsx`.
+**Baja reversible, sin confirmación**: dar de baja es un clic (toast "Artículo dado de baja")
+porque es reversible y el artículo desaparece de la vista "Activos" (señal suficiente); se
+reactiva con otro clic. La fila dada de baja se atenúa y muestra el estado "Dado de baja".
+**Filtro de estado**: la lista por defecto muestra solo activos; un `<select>` nuevo (param
+`status`: `active` default / `inactive` / `all`) permite ver y reactivar los dados de baja. El
+filtro de disponibilidad (`avail`) ya existía y se conserva.
+**Descartado**: confirmación inline para la baja (innecesaria por ser reversible); borrado
+físico (viola la baja lógica); acciones masivas / selección múltiple (son de Etapa 3); un
+componente `dropdown-menu` de shadcn (los botones-ícono inline alcanzan sin sumar dependencias).

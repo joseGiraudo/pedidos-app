@@ -10,7 +10,7 @@ import { useUrlParams } from "./use-url-params";
 type Option = { id: string; name: string };
 
 type ArticlesToolbarProps = {
-  defaults: { q: string; cat: string; brand: string; avail: string };
+  defaults: { q: string; cat: string; brand: string; avail: string; status: string };
   categories: Option[];
   brands: Option[];
   useBrands: boolean;
@@ -93,6 +93,19 @@ export function ArticlesToolbar({
         <option value="all">Disponibilidad: todas</option>
         <option value="yes">Disponibles</option>
         <option value="no">Sin stock</option>
+      </select>
+
+      <select
+        className={selectClass}
+        value={defaults.status}
+        aria-label="Filtrar por estado"
+        onChange={(e) =>
+          update({ status: e.target.value === "active" ? "" : e.target.value }, { resetPage: true })
+        }
+      >
+        <option value="active">Activos</option>
+        <option value="inactive">Dados de baja</option>
+        <option value="all">Todos</option>
       </select>
     </div>
   );
