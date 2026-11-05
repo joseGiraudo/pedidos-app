@@ -31,7 +31,7 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 
 - [x] ABM de categorías y marcas
 - [x] Lista de artículos con TanStack Table: filtros, buscador, paginación
-- [ ] Alta y edición de artículo (por unidad y por peso)
+- [x] Alta y edición de artículo (por unidad y por peso)
 - [ ] Generación automática de códigos
 - [ ] Baja lógica y "sin stock"
 - [ ] Ocultar marca/categoría si el proveedor no las usa

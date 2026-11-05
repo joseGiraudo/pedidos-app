@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-table";
 import { cn } from "cn";
 import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon } from "lucide-react";
+import Link from "next/link";
 import { useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -84,7 +85,14 @@ export function ArticlesTable({
       {
         accessorKey: "name",
         header: () => sortableHeader("Nombre", "name"),
-        cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+        cell: ({ row }) => (
+          <Link
+            href={`/panel/articulos/${row.original.id}/editar`}
+            className="font-medium hover:underline"
+          >
+            {row.original.name}
+          </Link>
+        ),
       },
     ];
 

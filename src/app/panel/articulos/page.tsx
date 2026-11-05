@@ -1,8 +1,11 @@
 import { and, asc, count, desc, eq, ilike, isNull, or } from "drizzle-orm";
+import { cn } from "cn";
+import { PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { buttonVariants } from "@/components/ui/button";
 import { db } from "@/db";
 import { brands, categories, products, suppliers } from "@/db/schema";
 import { getCurrentTenant } from "@/lib/session";
@@ -123,11 +126,17 @@ export default async function ArticulosPage({
       <Link href="/panel" className="text-muted-foreground text-sm hover:underline">
         ← Volver al panel
       </Link>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Artículos</h1>
-        <p className="text-muted-foreground text-sm">
-          {total} {total === 1 ? "artículo" : "artículos"}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold">Artículos</h1>
+          <p className="text-muted-foreground text-sm">
+            {total} {total === 1 ? "artículo" : "artículos"}
+          </p>
+        </div>
+        <Link href="/panel/articulos/nuevo" className={cn(buttonVariants({ size: "lg" }))}>
+          <PlusIcon />
+          Agregar artículo
+        </Link>
       </div>
 
       <ArticlesToolbar

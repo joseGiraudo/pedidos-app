@@ -275,3 +275,31 @@ Compiler (no puede memoizar las funciones que devuelve TanStack); es esperado y 
 manual, se silencia puntualmente con un `eslint-disable-next-line` comentado.
 **Descartado**: tabla totalmente client-side (traer todo y filtrar en memoria) — no escala a 1.000+
 artículos en celular; un componente `select` de shadcn (los `<select>` nativos alcanzan para los filtros).
+
+## 2026-11-05 · Alta y edición de artículo (por unidad y por peso) (Etapa 2)
+
+**Motivo**: `/panel/articulos/nuevo` y `/panel/articulos/[id]/editar` con un formulario cliente
+compartido (`product-form.tsx`, RHF + `zodResolver`). Server actions `createProduct` / `updateProduct`
+(`src/app/panel/articulos/actions.ts`) con `getCurrentTenant()` y los helpers de `tenant.ts`
+(`withTenant` al insertar, `assertOwned` antes de editar). La lista enlaza el nombre a la edición y
+suma el botón "Agregar artículo".
+**Validación y conversión**: en `src/lib/validations/catalog.ts`. `makeProductSchema(requireCode)` es
+una **fábrica** porque el código solo es obligatorio si el proveedor usa códigos propios; el esquema
+valida la forma cruda (todo string, coherencia precio↔pedido) y **no transforma tipos** —la conversión
+a valores de base la hace `toProductValues` (dinero a `numeric(…,2)`, peso a `numeric(…,3)`, opcionales
+a `null`). Así el tipo del formulario queda simple (sin genéricos de transform de zodResolver), igual
+que el patrón de `config-form`.
+**Formato local**: `parseArgNumber` interpreta coma como decimal y punto como miles (consistente con el
+CSV de `reglas-de-negocio.md`); al editar, el número de la base se muestra con coma. Entradas de precio
+y peso como texto con `inputMode` adecuado, no `<input type=number>` (no respeta la coma en es-AR).
+**Coherencia precio/pedido**: por unidad ⇒ `order_mode = unit` (forzado también en `toProductValues`);
+por kilo ⇒ se pide por pieza o por kilo, y por pieza exige `avg_piece_weight_kg` (para estimar el total,
+ver "Venta por peso"). Campos de marca/categoría/código ocultos según los flags del proveedor.
+**Generación de códigos (mínima acá)**: para que el alta funcione con proveedores que no usan códigos
+propios, el código se genera con `generateProductCode(n)` (relleno de ceros) tomando `next_product_code`
+e incrementándolo en la **misma transacción** del insert (evita números repetidos). La tarea dedicada
+"Generación automática de códigos" formalizará/extenderá la generación (p. ej. en la importación).
+**Fuera de esta tarea**: baja lógica (`is_active`) y acciones masivas; el toggle `is_available`
+("sin stock") sí se incluye por ser un campo propio del artículo.
+**Descartado**: `<input type=number>` (rompe la coma decimal argentina); schema con `.transform` que
+cambie tipos (complica los genéricos de RHF/zodResolver); un componente `select` de shadcn.
