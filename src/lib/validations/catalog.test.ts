@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  applyTaxonomyFlags,
   generateProductCode,
   makeProductSchema,
   nextGeneratedCode,
@@ -165,6 +166,44 @@ describe("makeProductSchema", () => {
   it("acepta por kilo pedido por kilo sin peso promedio", () => {
     const porKilo = { ...baseValues, pricingUnit: "kg" as const, orderMode: "kg" as const };
     expect(makeProductSchema(true).safeParse(porKilo).success).toBe(true);
+  });
+});
+
+describe("applyTaxonomyFlags", () => {
+  it("conserva marca y categoría si el proveedor las usa", () => {
+    expect(
+      applyTaxonomyFlags(
+        { brandId: "b1", categoryId: "c1" },
+        { useBrands: true, useCategories: true },
+      ),
+    ).toEqual({ brandId: "b1", categoryId: "c1" });
+  });
+
+  it("descarta la marca si no usa marcas", () => {
+    expect(
+      applyTaxonomyFlags(
+        { brandId: "b1", categoryId: "c1" },
+        { useBrands: false, useCategories: true },
+      ),
+    ).toEqual({ brandId: "", categoryId: "c1" });
+  });
+
+  it("descarta la categoría si no usa categorías", () => {
+    expect(
+      applyTaxonomyFlags(
+        { brandId: "b1", categoryId: "c1" },
+        { useBrands: true, useCategories: false },
+      ),
+    ).toEqual({ brandId: "b1", categoryId: "" });
+  });
+
+  it("descarta ambas si no usa ninguna", () => {
+    expect(
+      applyTaxonomyFlags(
+        { brandId: "b1", categoryId: "c1" },
+        { useBrands: false, useCategories: false },
+      ),
+    ).toEqual({ brandId: "", categoryId: "" });
   });
 });
 

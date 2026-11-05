@@ -4,11 +4,12 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
-import { products, suppliers } from "@/db/schema";
+import { brands, categories, products, suppliers } from "@/db/schema";
 import { isUniqueViolation } from "@/lib/db-errors";
 import { getCurrentTenant } from "@/lib/session";
-import { assertOwned, tenantEq, withTenant } from "@/lib/tenant";
+import { assertOwned, tenantEq, withTenant, type Tenant } from "@/lib/tenant";
 import {
+  applyTaxonomyFlags,
   makeProductSchema,
   nextGeneratedCode,
   normalizeCode,
@@ -26,26 +27,64 @@ const INVALID = "Revisá los datos ingresados.";
 // Alta y edición de artículos del proveedor logueado. El supplier_id sale de la sesión,
 // nunca del cliente, y toda consulta se filtra con los helpers de tenant.ts.
 
-async function getSupplierFlag(supplierId: string): Promise<{ usesOwnCodes: boolean } | null> {
+type SupplierSettings = { usesOwnCodes: boolean; useBrands: boolean; useCategories: boolean };
+
+async function getSupplierSettings(supplierId: string): Promise<SupplierSettings | null> {
   const [row] = await db
-    .select({ usesOwnCodes: suppliers.usesOwnCodes })
+    .select({
+      usesOwnCodes: suppliers.usesOwnCodes,
+      useBrands: suppliers.useBrands,
+      useCategories: suppliers.useCategories,
+    })
     .from(suppliers)
     .where(eq(suppliers.id, supplierId))
     .limit(1);
   return row ?? null;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Valida que la marca y la categoría elegidas pertenezcan al proveedor (aislación
+// multi-tenant: la FK no alcanza, apunta a cualquier proveedor). Vacío = sin marca/categoría.
+async function taxonomyBelongsToTenant(
+  tenant: Tenant,
+  values: { brandId: string; categoryId: string },
+): Promise<boolean> {
+  if (values.brandId) {
+    if (!UUID_RE.test(values.brandId)) return false;
+    const [row] = await db
+      .select({ id: brands.id })
+      .from(brands)
+      .where(and(eq(brands.id, values.brandId), tenantEq(brands, tenant)))
+      .limit(1);
+    if (!row) return false;
+  }
+  if (values.categoryId) {
+    if (!UUID_RE.test(values.categoryId)) return false;
+    const [row] = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(and(eq(categories.id, values.categoryId), tenantEq(categories, tenant)))
+      .limit(1);
+    if (!row) return false;
+  }
+  return true;
+}
+
 export async function createProduct(values: ProductFormValues): Promise<ProductResult> {
   const tenant = await getCurrentTenant();
   if (!tenant) return { error: SESSION_EXPIRED };
 
-  const supplier = await getSupplierFlag(tenant.supplierId);
+  const supplier = await getSupplierSettings(tenant.supplierId);
   if (!supplier) return { error: SESSION_EXPIRED };
 
   const parsed = makeProductSchema(supplier.usesOwnCodes).safeParse(values);
   if (!parsed.success) return { error: INVALID };
 
-  const dbValues = toProductValues(parsed.data);
+  const taxonomy = applyTaxonomyFlags(parsed.data, supplier);
+  if (!(await taxonomyBelongsToTenant(tenant, taxonomy))) return { error: INVALID };
+
+  const dbValues = toProductValues({ ...parsed.data, ...taxonomy });
 
   try {
     const id = await db.transaction(async (tx) => {
@@ -103,7 +142,7 @@ export async function updateProduct(
   const tenant = await getCurrentTenant();
   if (!tenant) return { error: SESSION_EXPIRED };
 
-  const supplier = await getSupplierFlag(tenant.supplierId);
+  const supplier = await getSupplierSettings(tenant.supplierId);
   if (!supplier) return { error: SESSION_EXPIRED };
 
   const [existing] = await db
@@ -116,7 +155,10 @@ export async function updateProduct(
   const parsed = makeProductSchema(supplier.usesOwnCodes).safeParse(values);
   if (!parsed.success) return { error: INVALID };
 
-  const dbValues = toProductValues(parsed.data);
+  const taxonomy = applyTaxonomyFlags(parsed.data, supplier);
+  if (!(await taxonomyBelongsToTenant(tenant, taxonomy))) return { error: INVALID };
+
+  const dbValues = toProductValues({ ...parsed.data, ...taxonomy });
   // El código solo se edita si el proveedor usa códigos propios; los generados no se tocan.
   const codeUpdate = supplier.usesOwnCodes
     ? { code: normalizeCode(parsed.data.code), codeIsGenerated: false }

@@ -194,6 +194,21 @@ export function makeProductSchema(requireCode: boolean) {
     });
 }
 
+/**
+ * Aplica los flags del proveedor: si no usa marcas o categorías, fuerza el id a vacío
+ * (regla "ocultar marca/categoría si el proveedor no las usa"). El servidor no confía en
+ * lo que mande el cliente: aunque el formulario oculte el campo, acá se descarta.
+ */
+export function applyTaxonomyFlags(
+  values: { brandId: string; categoryId: string },
+  flags: { useBrands: boolean; useCategories: boolean },
+): { brandId: string; categoryId: string } {
+  return {
+    brandId: flags.useBrands ? values.brandId : "",
+    categoryId: flags.useCategories ? values.categoryId : "",
+  };
+}
+
 export type ProductDbValues = {
   name: string;
   brandId: string | null;

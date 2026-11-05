@@ -34,7 +34,7 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 - [x] Alta y edición de artículo (por unidad y por peso)
 - [x] Generación automática de códigos
 - [x] Baja lógica y "sin stock"
-- [ ] Ocultar marca/categoría si el proveedor no las usa
+- [x] Ocultar marca/categoría si el proveedor no las usa
 - [x] Tests de normalización y generación de códigos
 
 ## Etapa 3 — Precios

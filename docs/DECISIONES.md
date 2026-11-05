@@ -340,3 +340,22 @@ filtro de disponibilidad (`avail`) ya existía y se conserva.
 **Descartado**: confirmación inline para la baja (innecesaria por ser reversible); borrado
 físico (viola la baja lógica); acciones masivas / selección múltiple (son de Etapa 3); un
 componente `dropdown-menu` de shadcn (los botones-ícono inline alcanzan sin sumar dependencias).
+
+## 2026-11-05 · Ocultar marca/categoría se aplica también en el servidor (Etapa 2)
+
+**Motivo**: cierra la Etapa 2. El ocultamiento por flags `use_brands` / `use_categories` ya
+estaba en toda la UI (pantallas de marcas/categorías redirigen a `/panel` si el flag está off,
+links del panel ocultos, columnas/filtros de la lista y campos del formulario condicionados).
+Faltaba que el **servidor no confiara en el cliente**: `createProduct` / `updateProduct`
+tomaban el `brandId` / `categoryId` del form tal cual. Ahora aplican los flags con el helper
+**puro** `applyTaxonomyFlags` (en `catalog.ts`, fuerza el id a vacío si el proveedor no usa esa
+taxonomía; con tests) y, además, **validan pertenencia multi-tenant**: un `brandId` /
+`categoryId` no vacío debe existir y pertenecer al proveedor (`taxonomyBelongsToTenant` con
+`tenantEq`), porque la FK sola apunta a la marca/categoría de cualquier proveedor —un request
+manipulado podría asignar la de otro. `getSupplierFlag` pasó a `getSupplierSettings`
+(devuelve los tres flags). Se descarta con un uuid-regex previo para no romper la query con un
+id mal formado (se traduce a "Revisá los datos ingresados").
+**Descartado**: confiar solo en el ocultamiento de la UI (viola la regla multi-tenant de
+CLAUDE.md); validar el uuid en el schema Zod compartido (lo complica y el regex en la action
+alcanza); borrar el `brand_id` / `category_id` existente de productos viejos al apagar el flag
+(el ocultamiento es presentacional: si el proveedor reactiva el flag, recupera su dato).
