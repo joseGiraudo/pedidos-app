@@ -226,3 +226,136 @@ FKs y reinserta dentro de una transacción, así es idempotente. Corre con `tsx`
 carga `.env.local` con `dotenv`.
 **Fuera del seed**: pedidos, `price_changes` y `price_update_batches` — necesitan `user.id`, que recién
 existe con Better Auth (Etapa 1).
+
+## 2026-11-04 · ABM de categorías y marcas (Etapa 2)
+
+**Motivo**: primera tarea del catálogo. Pantallas `/panel/categorias` y `/panel/marcas` para el alta,
+edición, borrado y (solo categorías) reordenamiento. Server actions con `getCurrentTenant()` y los
+helpers de `tenant.ts`; validación compartida en `src/lib/validations/catalog.ts` (`normalizeName`
+recorta y colapsa espacios —no pasa a mayúsculas, eso es solo para `code` de productos— y
+`taxonomyNameSchema`). El `unique(supplier_id, name)` de la base atrapa duplicados: las actions
+traducen el SQLSTATE `23505` (`src/lib/db-errors.ts`) a un mensaje claro.
+**Borrado**: `categories`/`brands` no tienen `is_active`, así que el borrado es **físico**. Como los
+productos las referencian con FK nullable (`NULL` = sin categoría/marca), al borrar se **reasignan a
+`NULL`** los artículos y luego se elimina la fila, todo en una transacción. La pantalla avisa cuántos
+artículos quedarán sin categoría/marca antes de confirmar.
+**Reorden de categorías**: botones ↑/↓; `moveCategory` reindexa `sort_order` 0..n-1 sobre la lista
+reordenada (robusto frente a `sort_order` repetidos que pudiera traer el seed). Las marcas no se ordenan.
+**Visibilidad por flags**: las pantallas se guardan con `use_categories` / `use_brands` del proveedor
+(redirigen a `/panel` si están en off) y los links del panel solo aparecen si el flag está activo
+(regla "ocultar marca/categoría si el proveedor no las usa").
+**UI**: componente cliente compartido `src/app/panel/_components/taxonomy-manager.tsx` (edición inline,
+confirmación de borrado con conteo, `useTransition` + `router.refresh()`), reutilizado por ambas
+pantallas con las server actions pasadas como props. Primer uso real de sonner: se montó `<Toaster />`
+en el layout raíz.
+**Descartado**: bloquear el borrado si la categoría/marca está en uso (más fricción); `window.confirm`
+y un componente `dialog` nuevo (la confirmación inline alcanza sin sumar dependencias).
+
+## 2026-11-04 · Lista de artículos con filtros/orden/paginación en el servidor (Etapa 2)
+
+**Motivo**: `/panel/articulos` lista el catálogo. Con el objetivo de "rápido incluso con 1.000+
+artículos" (`requisitos.md`), el filtrado, la búsqueda, el orden y la paginación se hacen **en el
+servidor**: el estado vive en los query params de la URL y el server component vuelve a consultar en
+cada cambio. TanStack Table (`@tanstack/react-table`) se usa en modo **manual** (`manualPagination` +
+`manualSorting`), solo para el modelo de columnas y el render; no hace filtrado/paginado en el cliente.
+**Filtros** (coinciden con `requisitos.md`): buscador por nombre o código (`ilike`, aprovecha el índice
+`pg_trgm` de `products.name`), y selects de categoría, marca y disponibilidad. El valor `none` filtra
+"sin categoría/sin marca" (`IS NULL`). Orden por nombre (default), código o precio mayorista desde los
+encabezados. Página de 20; el conteo total sale de un `count()` con el mismo `where`.
+**Solo activos**: la lista muestra `is_active = true`; la baja lógica y el alta/edición son tareas
+aparte de la etapa. Las columnas de marca/categoría y sus filtros **se ocultan** según
+`use_brands` / `use_categories`.
+**Componentes**: `ArticlesToolbar` (búsqueda + filtros, selects nativos como en Configuración) y
+`ArticlesTable` (TanStack + encabezados ordenables + paginación), ambos cliente; comparten el hook
+`useUrlParams` que reescribe la URL preservando el resto y vuelve a página 1 al cambiar filtros/orden.
+**Formato**: `src/lib/format.ts` → `formatMoney` (Intl `es-AR`, `$` con miles por punto y decimales por
+coma; `numeric` llega como string desde la base).
+**Nota de lint**: `useReactTable` dispara el warning `react-hooks/incompatible-library` del React
+Compiler (no puede memoizar las funciones que devuelve TanStack); es esperado y seguro con paginación
+manual, se silencia puntualmente con un `eslint-disable-next-line` comentado.
+**Descartado**: tabla totalmente client-side (traer todo y filtrar en memoria) — no escala a 1.000+
+artículos en celular; un componente `select` de shadcn (los `<select>` nativos alcanzan para los filtros).
+
+## 2026-11-05 · Alta y edición de artículo (por unidad y por peso) (Etapa 2)
+
+**Motivo**: `/panel/articulos/nuevo` y `/panel/articulos/[id]/editar` con un formulario cliente
+compartido (`product-form.tsx`, RHF + `zodResolver`). Server actions `createProduct` / `updateProduct`
+(`src/app/panel/articulos/actions.ts`) con `getCurrentTenant()` y los helpers de `tenant.ts`
+(`withTenant` al insertar, `assertOwned` antes de editar). La lista enlaza el nombre a la edición y
+suma el botón "Agregar artículo".
+**Validación y conversión**: en `src/lib/validations/catalog.ts`. `makeProductSchema(requireCode)` es
+una **fábrica** porque el código solo es obligatorio si el proveedor usa códigos propios; el esquema
+valida la forma cruda (todo string, coherencia precio↔pedido) y **no transforma tipos** —la conversión
+a valores de base la hace `toProductValues` (dinero a `numeric(…,2)`, peso a `numeric(…,3)`, opcionales
+a `null`). Así el tipo del formulario queda simple (sin genéricos de transform de zodResolver), igual
+que el patrón de `config-form`.
+**Formato local**: `parseArgNumber` interpreta coma como decimal y punto como miles (consistente con el
+CSV de `reglas-de-negocio.md`); al editar, el número de la base se muestra con coma. Entradas de precio
+y peso como texto con `inputMode` adecuado, no `<input type=number>` (no respeta la coma en es-AR).
+**Coherencia precio/pedido**: por unidad ⇒ `order_mode = unit` (forzado también en `toProductValues`);
+por kilo ⇒ se pide por pieza o por kilo, y por pieza exige `avg_piece_weight_kg` (para estimar el total,
+ver "Venta por peso"). Campos de marca/categoría/código ocultos según los flags del proveedor.
+**Generación de códigos (mínima acá)**: para que el alta funcione con proveedores que no usan códigos
+propios, el código se genera con `generateProductCode(n)` (relleno de ceros) tomando `next_product_code`
+e incrementándolo en la **misma transacción** del insert (evita números repetidos). La tarea dedicada
+"Generación automática de códigos" formalizará/extenderá la generación (p. ej. en la importación).
+**Fuera de esta tarea**: baja lógica (`is_active`) y acciones masivas; el toggle `is_available`
+("sin stock") sí se incluye por ser un campo propio del artículo.
+**Descartado**: `<input type=number>` (rompe la coma decimal argentina); schema con `.transform` que
+cambie tipos (complica los genéricos de RHF/zodResolver); un componente `select` de shadcn.
+
+## 2026-11-05 · Generación de códigos a prueba de colisiones (Etapa 2)
+
+**Motivo**: formaliza la "Generación automática de códigos". Cuando el proveedor no usa códigos
+propios, el sistema los genera desde `suppliers.next_product_code` con `generateProductCode(n)`
+(relleno de ceros a 4 dígitos). El incremento ciego anterior podía chocar con un código ya
+existente —un código propio numérico de cuando `uses_own_codes` estaba en on, o un generado del
+seed sin ajustar el contador— y devolver "código duplicado" por un código que el usuario nunca
+tipeó. Ahora `createProduct`, dentro de su transacción: bloquea la fila del proveedor con
+`.for("update")` (serializa generaciones concurrentes), carga el set de `code` del proveedor y
+usa el helper **puro** `nextGeneratedCode(from, isTaken)` (en `catalog.ts`) que salta los
+tomados y devuelve el código libre + el nuevo contador. El helper síncrono queda 100%
+unit-testeable sin base (tests en `catalog.test.ts`); las actions se prueban a mano / e2e.
+**Descartado**: reintentar sobre el `UNIQUE` (`23505`) con savepoints (más complejo; en Postgres
+el error aborta la transacción salvo savepoint) — cargar el set de códigos y saltar en memoria es
+más simple y suficiente a la escala del MVP (~1.000 artículos). La generación durante la
+**importación** masiva es Etapa 4.
+
+## 2026-11-05 · Baja lógica y "sin stock" por fila (Etapa 2)
+
+**Motivo**: el artículo no se borra (regla de baja lógica), se desactiva (`is_active`), y
+"sin stock" (`is_available`) se alterna sin darlo de baja. Se resuelve con **acciones por
+fila** en `/panel/articulos`, no con selección múltiple (eso es Etapa 3). Dos server actions
+en `articulos/actions.ts`: `setProductActive(id, isActive)` y `setProductAvailable(id,
+isAvailable)`, ambas sobre un helper privado `setProductFlag` que valida pertenencia con
+`assertOwned` + `tenantEq` y `revalidatePath`. La UI es un componente cliente
+`article-row-actions.tsx` (botones-ícono con `useTransition` + `router.refresh()` + `toast`,
+mismo patrón que `taxonomy-manager`) montado en una columna "Acciones" de `articles-table.tsx`.
+**Baja reversible, sin confirmación**: dar de baja es un clic (toast "Artículo dado de baja")
+porque es reversible y el artículo desaparece de la vista "Activos" (señal suficiente); se
+reactiva con otro clic. La fila dada de baja se atenúa y muestra el estado "Dado de baja".
+**Filtro de estado**: la lista por defecto muestra solo activos; un `<select>` nuevo (param
+`status`: `active` default / `inactive` / `all`) permite ver y reactivar los dados de baja. El
+filtro de disponibilidad (`avail`) ya existía y se conserva.
+**Descartado**: confirmación inline para la baja (innecesaria por ser reversible); borrado
+físico (viola la baja lógica); acciones masivas / selección múltiple (son de Etapa 3); un
+componente `dropdown-menu` de shadcn (los botones-ícono inline alcanzan sin sumar dependencias).
+
+## 2026-11-05 · Ocultar marca/categoría se aplica también en el servidor (Etapa 2)
+
+**Motivo**: cierra la Etapa 2. El ocultamiento por flags `use_brands` / `use_categories` ya
+estaba en toda la UI (pantallas de marcas/categorías redirigen a `/panel` si el flag está off,
+links del panel ocultos, columnas/filtros de la lista y campos del formulario condicionados).
+Faltaba que el **servidor no confiara en el cliente**: `createProduct` / `updateProduct`
+tomaban el `brandId` / `categoryId` del form tal cual. Ahora aplican los flags con el helper
+**puro** `applyTaxonomyFlags` (en `catalog.ts`, fuerza el id a vacío si el proveedor no usa esa
+taxonomía; con tests) y, además, **validan pertenencia multi-tenant**: un `brandId` /
+`categoryId` no vacío debe existir y pertenecer al proveedor (`taxonomyBelongsToTenant` con
+`tenantEq`), porque la FK sola apunta a la marca/categoría de cualquier proveedor —un request
+manipulado podría asignar la de otro. `getSupplierFlag` pasó a `getSupplierSettings`
+(devuelve los tres flags). Se descarta con un uuid-regex previo para no romper la query con un
+id mal formado (se traduce a "Revisá los datos ingresados").
+**Descartado**: confiar solo en el ocultamiento de la UI (viola la regla multi-tenant de
+CLAUDE.md); validar el uuid en el schema Zod compartido (lo complica y el regex en la action
+alcanza); borrar el `brand_id` / `category_id` existente de productos viejos al apagar el flag
+(el ocultamiento es presentacional: si el proveedor reactiva el flag, recupera su dato).

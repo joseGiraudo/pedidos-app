@@ -1,0 +1,217 @@
+"use server";
+
+import { and, eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+
+import { db } from "@/db";
+import { brands, categories, products, suppliers } from "@/db/schema";
+import { isUniqueViolation } from "@/lib/db-errors";
+import { getCurrentTenant } from "@/lib/session";
+import { assertOwned, tenantEq, withTenant, type Tenant } from "@/lib/tenant";
+import {
+  applyTaxonomyFlags,
+  makeProductSchema,
+  nextGeneratedCode,
+  normalizeCode,
+  toProductValues,
+  type ProductFormValues,
+} from "@/lib/validations/catalog";
+
+export type ProductResult = { ok: true; id: string } | { error: string };
+export type ToggleResult = { ok: true } | { error: string };
+
+const SESSION_EXPIRED = "Tu sesión expiró. Volvé a iniciar sesión.";
+const DUPLICATE_CODE = "Ya existe un artículo con ese código.";
+const INVALID = "Revisá los datos ingresados.";
+
+// Alta y edición de artículos del proveedor logueado. El supplier_id sale de la sesión,
+// nunca del cliente, y toda consulta se filtra con los helpers de tenant.ts.
+
+type SupplierSettings = { usesOwnCodes: boolean; useBrands: boolean; useCategories: boolean };
+
+async function getSupplierSettings(supplierId: string): Promise<SupplierSettings | null> {
+  const [row] = await db
+    .select({
+      usesOwnCodes: suppliers.usesOwnCodes,
+      useBrands: suppliers.useBrands,
+      useCategories: suppliers.useCategories,
+    })
+    .from(suppliers)
+    .where(eq(suppliers.id, supplierId))
+    .limit(1);
+  return row ?? null;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Valida que la marca y la categoría elegidas pertenezcan al proveedor (aislación
+// multi-tenant: la FK no alcanza, apunta a cualquier proveedor). Vacío = sin marca/categoría.
+async function taxonomyBelongsToTenant(
+  tenant: Tenant,
+  values: { brandId: string; categoryId: string },
+): Promise<boolean> {
+  if (values.brandId) {
+    if (!UUID_RE.test(values.brandId)) return false;
+    const [row] = await db
+      .select({ id: brands.id })
+      .from(brands)
+      .where(and(eq(brands.id, values.brandId), tenantEq(brands, tenant)))
+      .limit(1);
+    if (!row) return false;
+  }
+  if (values.categoryId) {
+    if (!UUID_RE.test(values.categoryId)) return false;
+    const [row] = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(and(eq(categories.id, values.categoryId), tenantEq(categories, tenant)))
+      .limit(1);
+    if (!row) return false;
+  }
+  return true;
+}
+
+export async function createProduct(values: ProductFormValues): Promise<ProductResult> {
+  const tenant = await getCurrentTenant();
+  if (!tenant) return { error: SESSION_EXPIRED };
+
+  const supplier = await getSupplierSettings(tenant.supplierId);
+  if (!supplier) return { error: SESSION_EXPIRED };
+
+  const parsed = makeProductSchema(supplier.usesOwnCodes).safeParse(values);
+  if (!parsed.success) return { error: INVALID };
+
+  const taxonomy = applyTaxonomyFlags(parsed.data, supplier);
+  if (!(await taxonomyBelongsToTenant(tenant, taxonomy))) return { error: INVALID };
+
+  const dbValues = toProductValues({ ...parsed.data, ...taxonomy });
+
+  try {
+    const id = await db.transaction(async (tx) => {
+      let code: string;
+      let codeIsGenerated: boolean;
+
+      if (supplier.usesOwnCodes) {
+        code = normalizeCode(parsed.data.code);
+        codeIsGenerated = false;
+      } else {
+        // El sistema genera el código. Bloquea la fila del proveedor para que dos altas
+        // concurrentes no elijan el mismo número, y salta los códigos ya tomados (p. ej. un
+        // código propio numérico o un generado del seed) para no fallar por una colisión.
+        const [{ from }] = await tx
+          .select({ from: suppliers.nextProductCode })
+          .from(suppliers)
+          .where(eq(suppliers.id, tenant.supplierId))
+          .for("update");
+
+        const rows = await tx
+          .select({ code: products.code })
+          .from(products)
+          .where(tenantEq(products, tenant));
+        const taken = new Set(rows.map((r) => r.code));
+
+        const gen = nextGeneratedCode(from, (c) => taken.has(c));
+        code = gen.code;
+        codeIsGenerated = true;
+
+        await tx
+          .update(suppliers)
+          .set({ nextProductCode: gen.next })
+          .where(eq(suppliers.id, tenant.supplierId));
+      }
+
+      const [row] = await tx
+        .insert(products)
+        .values(withTenant({ ...dbValues, code, codeIsGenerated }, tenant))
+        .returning({ id: products.id });
+      return row.id;
+    });
+
+    revalidatePath("/panel/articulos");
+    return { ok: true, id };
+  } catch (error) {
+    if (isUniqueViolation(error)) return { error: DUPLICATE_CODE };
+    throw error;
+  }
+}
+
+export async function updateProduct(
+  id: string,
+  values: ProductFormValues,
+): Promise<ProductResult> {
+  const tenant = await getCurrentTenant();
+  if (!tenant) return { error: SESSION_EXPIRED };
+
+  const supplier = await getSupplierSettings(tenant.supplierId);
+  if (!supplier) return { error: SESSION_EXPIRED };
+
+  const [existing] = await db
+    .select({ id: products.id, supplierId: products.supplierId })
+    .from(products)
+    .where(and(eq(products.id, id), tenantEq(products, tenant)))
+    .limit(1);
+  assertOwned(existing, tenant);
+
+  const parsed = makeProductSchema(supplier.usesOwnCodes).safeParse(values);
+  if (!parsed.success) return { error: INVALID };
+
+  const taxonomy = applyTaxonomyFlags(parsed.data, supplier);
+  if (!(await taxonomyBelongsToTenant(tenant, taxonomy))) return { error: INVALID };
+
+  const dbValues = toProductValues({ ...parsed.data, ...taxonomy });
+  // El código solo se edita si el proveedor usa códigos propios; los generados no se tocan.
+  const codeUpdate = supplier.usesOwnCodes
+    ? { code: normalizeCode(parsed.data.code), codeIsGenerated: false }
+    : {};
+
+  try {
+    await db
+      .update(products)
+      .set({ ...dbValues, ...codeUpdate })
+      .where(and(eq(products.id, id), tenantEq(products, tenant)));
+  } catch (error) {
+    if (isUniqueViolation(error)) return { error: DUPLICATE_CODE };
+    throw error;
+  }
+
+  revalidatePath("/panel/articulos");
+  revalidatePath(`/panel/articulos/${id}/editar`);
+  return { ok: true, id };
+}
+
+// Cambia un flag booleano de un artículo del proveedor logueado, validando pertenencia.
+async function setProductFlag(
+  id: string,
+  flag: Partial<Pick<typeof products.$inferInsert, "isActive" | "isAvailable">>,
+): Promise<ToggleResult> {
+  const tenant = await getCurrentTenant();
+  if (!tenant) return { error: SESSION_EXPIRED };
+
+  const [existing] = await db
+    .select({ id: products.id, supplierId: products.supplierId })
+    .from(products)
+    .where(and(eq(products.id, id), tenantEq(products, tenant)))
+    .limit(1);
+  assertOwned(existing, tenant);
+
+  await db
+    .update(products)
+    .set(flag)
+    .where(and(eq(products.id, id), tenantEq(products, tenant)));
+
+  revalidatePath("/panel/articulos");
+  return { ok: true };
+}
+
+/** Baja lógica: desactiva o reactiva un artículo (nunca se borra). */
+export async function setProductActive(id: string, isActive: boolean): Promise<ToggleResult> {
+  return setProductFlag(id, { isActive });
+}
+
+/** "Sin stock": marca el artículo como disponible o no, sin darlo de baja. */
+export async function setProductAvailable(
+  id: string,
+  isAvailable: boolean,
+): Promise<ToggleResult> {
+  return setProductFlag(id, { isAvailable });
+}

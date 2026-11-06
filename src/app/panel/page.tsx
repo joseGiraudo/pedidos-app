@@ -20,7 +20,11 @@ export default async function PanelPage() {
   const supplierId = session.user.supplierId;
   const [supplier] = supplierId
     ? await db
-        .select({ name: suppliers.name })
+        .select({
+          name: suppliers.name,
+          useBrands: suppliers.useBrands,
+          useCategories: suppliers.useCategories,
+        })
         .from(suppliers)
         .where(eq(suppliers.id, supplierId))
         .limit(1)
@@ -36,6 +40,19 @@ export default async function PanelPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" render={<Link href="/panel/articulos" />}>
+            Artículos
+          </Button>
+          {supplier?.useCategories && (
+            <Button variant="outline" render={<Link href="/panel/categorias" />}>
+              Categorías
+            </Button>
+          )}
+          {supplier?.useBrands && (
+            <Button variant="outline" render={<Link href="/panel/marcas" />}>
+              Marcas
+            </Button>
+          )}
           <Button variant="outline" render={<Link href="/panel/configuracion" />}>
             Configuración
           </Button>
