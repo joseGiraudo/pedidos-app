@@ -64,6 +64,7 @@ docs/                requisitos, modelo de datos, reglas, plan, decisiones
 
 - Antes de una tarea, leer la parte de `docs/` que corresponda (no todo).
 - Tareas chicas: una por sesión, un commit al terminar (`feat:`, `fix:`, `chore:`, `test:`, `docs:`).
+- **Nunca incluir a Claude/el asistente en commits, pushes ni pull requests**: sin línea `Co-Authored-By: Claude`, sin menciones de "Generated with Claude Code" ni nada por el estilo. Los commits y PRs van solo a nombre del autor humano.
 - La lógica de cálculo (`pricing.ts`, importación, transiciones de estado) lleva tests unitarios.
 - **Antes de dar algo por terminado**: correr `npm run typecheck`, `npm run lint` y `npm run test`.
 - Al cerrar una tarea: marcarla en `docs/plan-de-etapas.md` y, si hubo una decisión técnica, anotarla en `docs/DECISIONES.md`.
