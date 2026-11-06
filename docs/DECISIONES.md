@@ -341,6 +341,22 @@ filtro de disponibilidad (`avail`) ya existía y se conserva.
 físico (viola la baja lógica); acciones masivas / selección múltiple (son de Etapa 3); un
 componente `dropdown-menu` de shadcn (los botones-ícono inline alcanzan sin sumar dependencias).
 
+## 2026-11-06 · Redondeo de aumentos elegible por operación (Etapa 3)
+
+**Motivo**: el redondeo de un aumento masivo no es una política fija del sistema sino una
+**elección del proveedor en cada operación**: el múltiplo en pesos (ninguno / $10 / $50 / $100)
+y además la **dirección** (hacia arriba o al más cercano). El modelo solo guardaba el múltiplo
+(`price_update_batches.rounding` int), así que se agrega el enum `price_rounding_mode`
+(`up`/`nearest`) y la columna nullable `rounding_mode` (NULL cuando no hubo redondeo). La
+lógica vive en `src/lib/pricing.ts` (pura, en **centavos enteros** para no arrastrar float,
+según CLAUDE.md): `applyPercentage` (acepta negativos = rebaja), `roundToMultiple` (`up` =
+`Math.ceil`, `nearest` = `Math.round`; múltiplo 0 = sin redondeo; nunca negativo) y
+`computeProductChange` (respeta el target y deja el minorista NULL en NULL —hereda del
+mayorista—). Tests en `pricing.test.ts`. Para `created_by` (NOT NULL → `user.id`) se agrega
+`getCurrentActor()` en `session.ts` (el `Tenant` solo trae `supplierId`). Migración `0003`.
+**Descartado**: fijar una sola política de redondeo en el sistema (menos flexible); operar en
+pesos con float (arrastra errores de redondeo, viola la regla de dinero).
+
 ## 2026-11-05 · Ocultar marca/categoría se aplica también en el servidor (Etapa 2)
 
 **Motivo**: cierra la Etapa 2. El ocultamiento por flags `use_brands` / `use_categories` ya

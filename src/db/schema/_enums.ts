@@ -16,6 +16,8 @@ export const priceBatchKind = pgEnum("price_batch_kind", ["increase", "import"])
 
 export const priceTarget = pgEnum("price_target", ["wholesale", "retail", "both"]);
 
+export const priceRoundingMode = pgEnum("price_rounding_mode", ["up", "nearest"]);
+
 export const orderStatus = pgEnum("order_status", [
   "draft",
   "sent",

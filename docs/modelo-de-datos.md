@@ -115,7 +115,8 @@ Tokens temporales: recuperación de contraseña y verificación de email.
 | kind            | enum `increase` / `import`           |                                       |
 | description     | text                                 | "+8 % Arcor", "Importación del 02/11" |
 | percentage      | numeric(6,2), opcional               | Vacío en importaciones                |
-| rounding        | int, opcional                        | 10, 50, 100                           |
+| rounding        | int, opcional                        | Múltiplo en pesos: 10, 50, 100        |
+| rounding_mode   | enum `up` / `nearest`, opcional      | Dirección; vacío si no hubo redondeo  |
 | target          | enum `wholesale` / `retail` / `both` |                                       |
 | affected_count  | int                                  |                                       |
 | created_by      | text                                 | `user.id`                             |
