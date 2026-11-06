@@ -341,6 +341,32 @@ filtro de disponibilidad (`avail`) ya existía y se conserva.
 físico (viola la baja lógica); acciones masivas / selección múltiple (son de Etapa 3); un
 componente `dropdown-menu` de shadcn (los botones-ícono inline alcanzan sin sumar dependencias).
 
+## 2026-11-06 · Aumento masivo: modal con Base UI y vista previa en el cliente (Etapa 3)
+
+**Motivo**: cierra la Etapa 3. La lista suma **selección múltiple** (TanStack `enableRowSelection`
++ `getRowId` por id de producto) con una barra de acciones cuando hay filas elegidas. La selección
+es **por página visible** (la tabla pagina en el servidor): un `useEffect` la limpia al cambiar el
+conjunto de filas (página, filtros u orden), para no arrastrar ids que el usuario ya no ve. El
+aumento sobre "todos los filtrados" (más allá de la página) queda como mejora futura.
+**Modal**: `price-increase-dialog.tsx` usa el **Dialog de `@base-ui/react`** (ya es dependencia, lo
+usa `Input`), sin correr el CLI de shadcn ni sumar deps —coherente con el criterio de no agregar
+`dialog`/`dropdown` por gusto—. Campos con `<select>` nativos (como Configuración): porcentaje
+(acepta negativo = rebaja; se parsea aparte porque `parseArgNumber` rechaza el signo), target,
+múltiplo de redondeo y dirección (deshabilitada si no hay redondeo), y descripción autogenerada
+editable.
+**Vista previa en el cliente**: como `pricing.ts` es **puro**, el modal calcula la previa con
+`computeProductChange` sobre los precios que ya tiene la fila seleccionada —instantáneo, sin ir al
+servidor—. No hay action `previewPriceIncrease`: el servidor **recalcula** en `applyPriceIncrease`
+(nunca confía en el cliente), así la previa es solo indicativa.
+**Grabado** (`applyPriceIncrease` en `pricing-actions.ts`): en una transacción crea el
+`price_update_batches` (kind=increase, percentage, rounding/rounding_mode, target, affected_count) y,
+**solo por los artículos que realmente cambian**, un `price_changes` colgado del batch + el `UPDATE`.
+Se filtran los no-op para no crear batches/registros vacíos. Solo toca productos del tenant
+(`tenantEq` + `inArray`). `created_by` sale de `getCurrentActor()`.
+**Descartado**: action de preview en el servidor (round-trip innecesario teniendo la lógica pura);
+correr `shadcn add dialog` (el Dialog de Base UI alcanza); aumentar sobre el filtro completo en esta
+etapa (requiere resolver los ids server-side; se difiere).
+
 ## 2026-11-06 · Redondeo de aumentos elegible por operación (Etapa 3)
 
 **Motivo**: el redondeo de un aumento masivo no es una política fija del sistema sino una

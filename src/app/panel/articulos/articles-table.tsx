@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 
 import { ArticleRowActions } from "./article-row-actions";
 import { PriceCell } from "./price-cell";
+import { PriceIncreaseDialog } from "./price-increase-dialog";
 import { useUrlParams } from "./use-url-params";
 
 export type ProductRow = {
@@ -266,9 +267,15 @@ export function ArticlesTable({
           <span className="text-sm font-medium">
             {selectedCount} {selectedCount === 1 ? "seleccionado" : "seleccionados"}
           </span>
-          <Button variant="ghost" size="sm" onClick={() => table.resetRowSelection()}>
-            Limpiar selección
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => table.resetRowSelection()}>
+              Limpiar selección
+            </Button>
+            <PriceIncreaseDialog
+              rows={table.getSelectedRowModel().rows.map((r) => r.original)}
+              onApplied={() => table.resetRowSelection()}
+            />
+          </div>
         </div>
       )}
       <div className="overflow-x-auto rounded-lg border">

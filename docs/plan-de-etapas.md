@@ -40,10 +40,10 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 ## Etapa 3 — Precios
 
 - [x] Edición directa del precio en la lista (graba `price_changes`)
-- [ ] Selección múltiple y acciones masivas
-- [ ] Modal de aumento %: objetivo, redondeo, vista previa
-- [ ] Grabar `price_update_batches` + `price_changes`
-- [ ] Tests de `pricing.ts` (porcentajes, redondeo, centavos)
+- [x] Selección múltiple y acciones masivas
+- [x] Modal de aumento %: objetivo, redondeo, vista previa
+- [x] Grabar `price_update_batches` + `price_changes`
+- [x] Tests de `pricing.ts` (porcentajes, redondeo, centavos)
 
 ## Etapa 4 — Importación y exportación
 
