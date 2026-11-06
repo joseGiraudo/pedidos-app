@@ -12,9 +12,9 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
-import { formatMoney } from "@/lib/format";
 
 import { ArticleRowActions } from "./article-row-actions";
+import { PriceCell } from "./price-cell";
 import { useUrlParams } from "./use-url-params";
 
 export type ProductRow = {
@@ -127,17 +127,26 @@ export function ArticlesTable({
       {
         accessorKey: "wholesalePrice",
         header: () => <div className="text-right">{sortableHeader("Mayorista", "wholesale")}</div>,
-        cell: ({ row }) => formatMoney(row.original.wholesalePrice),
+        cell: ({ row }) => (
+          <PriceCell
+            id={row.original.id}
+            name={row.original.name}
+            field="wholesale"
+            value={row.original.wholesalePrice}
+          />
+        ),
       },
       {
         accessorKey: "retailPrice",
-        header: "Minorista",
-        cell: ({ row }) =>
-          row.original.retailPrice ? (
-            formatMoney(row.original.retailPrice)
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          ),
+        header: () => <div className="text-right">Minorista</div>,
+        cell: ({ row }) => (
+          <PriceCell
+            id={row.original.id}
+            name={row.original.name}
+            field="retail"
+            value={row.original.retailPrice}
+          />
+        ),
       },
       {
         accessorKey: "isAvailable",
