@@ -81,6 +81,37 @@ export async function updateCustomer(
 }
 
 /**
+ * Regenera el token de acceso del cliente: el link anterior deja de funcionar al instante.
+ * Útil si el link se filtró o el proveedor quiere cortar el acceso sin dar de baja al cliente.
+ */
+export async function regenerateToken(id: string): Promise<ToggleResult> {
+  const tenant = await getCurrentTenant();
+  if (!tenant) return { error: SESSION_EXPIRED };
+
+  const [existing] = await db
+    .select({ id: customers.id, supplierId: customers.supplierId })
+    .from(customers)
+    .where(and(eq(customers.id, id), tenantEq(customers, tenant)))
+    .limit(1);
+  assertOwned(existing, tenant);
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await db
+        .update(customers)
+        .set({ accessToken: newAccessToken() })
+        .where(and(eq(customers.id, id), tenantEq(customers, tenant)));
+      revalidatePath("/panel/clientes");
+      return { ok: true };
+    } catch (error) {
+      if (isUniqueViolation(error)) continue;
+      throw error;
+    }
+  }
+  return { error: "No pudimos regenerar el link. Probá de nuevo." };
+}
+
+/**
  * Baja lógica del cliente (nunca se borra). El `is_active` gobierna también el acceso por
  * link: al desactivar el cliente, su link deja de resolver (ver src/lib/customer-access.ts).
  */

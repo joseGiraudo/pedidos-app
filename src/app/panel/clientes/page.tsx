@@ -12,6 +12,7 @@ import { customers } from "@/db/schema";
 import { getCurrentTenant } from "@/lib/session";
 import { tenantEq } from "@/lib/tenant";
 
+import { CustomerLinkCell } from "./customer-link-cell";
 import { CustomerRowActions } from "./customer-row-actions";
 
 export const metadata: Metadata = {
@@ -71,11 +72,15 @@ export default async function ClientesPage({
       phone: customers.phone,
       priceList: customers.priceList,
       discountPct: customers.discountPct,
+      accessToken: customers.accessToken,
       isActive: customers.isActive,
     })
     .from(customers)
     .where(where)
     .orderBy(asc(customers.businessName));
+
+  // URL base de la app para armar el link personal del cliente (sin barra final).
+  const baseUrl = (process.env.BETTER_AUTH_URL ?? "").replace(/\/$/, "");
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 p-8">
@@ -127,6 +132,7 @@ export default async function ClientesPage({
                 <th className="p-3 font-medium">Contacto</th>
                 <th className="p-3 font-medium">Lista</th>
                 <th className="p-3 font-medium">Descuento</th>
+                <th className="p-3 font-medium">Link</th>
                 <th className="p-3 font-medium"></th>
               </tr>
             </thead>
@@ -149,6 +155,9 @@ export default async function ClientesPage({
                   </td>
                   <td className="p-3">{PRICE_LIST_LABEL[c.priceList]}</td>
                   <td className="p-3">{formatDiscount(c.discountPct)}</td>
+                  <td className="p-3">
+                    <CustomerLinkCell id={c.id} link={`${baseUrl}/p/${c.accessToken}`} />
+                  </td>
                   <td className="p-3">
                     <CustomerRowActions
                       id={c.id}
