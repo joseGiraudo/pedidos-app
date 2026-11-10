@@ -63,6 +63,13 @@ export function ReviewForm({ token, draft }: { token: string; draft: DraftView }
         </div>
       )}
 
+      {draft.hasPriceChange && (
+        <div className="bg-muted mx-4 mt-4 rounded-lg p-3 text-sm">
+          Algunos precios cambiaron desde que los agregaste. El total ya está actualizado con los
+          precios vigentes.
+        </div>
+      )}
+
       <ul className="divide-border divide-y border-y">
         {draft.lines.map((l) => (
           <li key={l.productId} className="flex items-center gap-3 p-4">
@@ -74,6 +81,9 @@ export function ReviewForm({ token, draft }: { token: string; draft: DraftView }
                 {l.estimatedWeightKg ? ` · ~${Number(l.estimatedWeightKg).toString().replace(".", ",")} kg` : ""}
               </span>
               {l.blocked && <span className="text-destructive text-xs">Ya no disponible</span>}
+              {!l.blocked && l.priceChanged && (
+                <span className="text-xs text-amber-600 dark:text-amber-500">Precio actualizado</span>
+              )}
             </div>
             <div className="flex flex-col items-end gap-1">
               <span className="font-medium">{formatMoney(l.estimatedLineTotal)}</span>
