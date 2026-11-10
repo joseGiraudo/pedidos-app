@@ -22,6 +22,7 @@ export type CustomerFormValues = {
   contactName: string;
   phone: string;
   address: string;
+  city: string;
   notes: string;
   priceList: PriceListValue;
   discountPct: string;
@@ -37,6 +38,7 @@ export const customerSchema = z
     contactName: z.string().trim().max(120, "Máximo 120 caracteres"),
     phone: z.string().trim().max(30, "Máximo 30 caracteres"),
     address: z.string().trim().max(200, "Máximo 200 caracteres"),
+    city: z.string().trim().max(120, "Máximo 120 caracteres"),
     notes: z.string().trim().max(500, "Máximo 500 caracteres"),
     priceList: z.enum(PRICE_LISTS),
     discountPct: z.string().trim(),
@@ -81,6 +83,7 @@ export function toCustomerValues(values: CustomerInput) {
     contactName: values.contactName === "" ? null : normalizeName(values.contactName),
     phone: values.phone === "" ? null : normalizeWhatsapp(values.phone),
     address: values.address === "" ? null : values.address,
+    city: values.city === "" ? null : normalizeName(values.city),
     notes: values.notes === "" ? null : values.notes,
     priceList: values.priceList,
     discountPct: toPct(pct ?? 0),

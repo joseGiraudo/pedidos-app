@@ -46,6 +46,7 @@ export default async function EditarClientePage({
     contactName: customer.contactName ?? "",
     phone: customer.phone ?? "",
     address: customer.address ?? "",
+    city: customer.city ?? "",
     notes: customer.notes ?? "",
     priceList: customer.priceList,
     discountPct: toInput(customer.discountPct),

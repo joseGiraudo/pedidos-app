@@ -16,6 +16,7 @@ const emptyDefaults: CustomerFormValues = {
   contactName: "",
   phone: "",
   address: "",
+  city: "",
   notes: "",
   priceList: "wholesale",
   discountPct: "",

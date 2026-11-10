@@ -86,10 +86,17 @@ export function CustomerForm({ mode, customerId, defaults }: CustomerFormProps) 
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="address">Dirección</Label>
-        <Input id="address" placeholder="Opcional" {...register("address")} />
-        {errors.address && <p className="text-destructive text-sm">{errors.address.message}</p>}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="address">Dirección</Label>
+          <Input id="address" placeholder="Opcional" {...register("address")} />
+          {errors.address && <p className="text-destructive text-sm">{errors.address.message}</p>}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="city">Ciudad</Label>
+          <Input id="city" placeholder="Opcional" {...register("city")} />
+          {errors.city && <p className="text-destructive text-sm">{errors.city.message}</p>}
+        </div>
       </div>
 
       <fieldset className="flex flex-col gap-4 rounded-lg border p-4">

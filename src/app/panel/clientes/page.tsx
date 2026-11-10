@@ -71,6 +71,7 @@ export default async function ClientesPage({
       businessName: customers.businessName,
       contactName: customers.contactName,
       phone: customers.phone,
+      city: customers.city,
       priceList: customers.priceList,
       discountPct: customers.discountPct,
       accessToken: customers.accessToken,
@@ -143,6 +144,7 @@ export default async function ClientesPage({
                   <td className="p-3">
                     <div className="flex flex-col">
                       <span className="font-medium">{c.businessName}</span>
+                      {c.city && <span className="text-muted-foreground text-xs">{c.city}</span>}
                       {!c.isActive && (
                         <span className="text-muted-foreground text-xs">Dado de baja</span>
                       )}

@@ -7,6 +7,7 @@ const base: CustomerFormValues = {
   contactName: "",
   phone: "",
   address: "",
+  city: "",
   notes: "",
   priceList: "wholesale",
   discountPct: "",
@@ -44,6 +45,7 @@ describe("toCustomerValues", () => {
     expect(values.contactName).toBeNull();
     expect(values.phone).toBeNull();
     expect(values.address).toBeNull();
+    expect(values.city).toBeNull();
     expect(values.notes).toBeNull();
     expect(values.priceList).toBe("wholesale");
     expect(values.discountPct).toBe("0.00");
@@ -55,12 +57,14 @@ describe("toCustomerValues", () => {
         ...base,
         contactName: "  Pepe   Gómez ",
         phone: "+54 9 351 234-5678",
+        city: "  Villa   María ",
         discountPct: "12,5",
         priceList: "retail",
       }),
     );
     expect(values.contactName).toBe("Pepe Gómez");
     expect(values.phone).toBe("5493512345678");
+    expect(values.city).toBe("Villa María");
     expect(values.discountPct).toBe("12.50");
     expect(values.priceList).toBe("retail");
   });
