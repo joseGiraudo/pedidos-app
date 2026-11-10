@@ -64,12 +64,12 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 
 ## Etapa 6 — Pedido del cliente
 
-- [ ] Catálogo móvil en `/p/[token]` con precios de su lista
-- [ ] Borrador en servidor, + / −, barra de total
-- [ ] Revisión y envío: congelar precios, número de pedido, abrir WhatsApp
-- [ ] Historial, detalle y "repetir pedido"
-- [ ] Aviso de precios cambiados y pantalla de link inactivo
-- [ ] Test e2e: armar y enviar un pedido
+- [x] Catálogo móvil en `/p/[token]` con precios de su lista
+- [x] Borrador en servidor, + / −, barra de total
+- [x] Revisión y envío: congelar precios, número de pedido, abrir WhatsApp
+- [x] Historial, detalle y "repetir pedido"
+- [x] Aviso de precios cambiados y pantalla de link inactivo
+- [x] Test e2e: armar y enviar un pedido
 
 ## Etapa 7 — Gestión de pedidos
 

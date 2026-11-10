@@ -105,9 +105,14 @@ export function OrderBuilder({
   return (
     <div className="flex flex-1 flex-col pb-24">
       <header className="bg-background sticky top-0 z-10 flex flex-col gap-3 border-b p-4">
-        <div>
-          <h1 className="text-lg font-semibold">{supplierName}</h1>
-          <p className="text-muted-foreground text-sm">Hola, {businessName}. Armá tu pedido.</p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h1 className="text-lg font-semibold">{supplierName}</h1>
+            <p className="text-muted-foreground text-sm">Hola, {businessName}. Armá tu pedido.</p>
+          </div>
+          <Link href={`/p/${token}/pedidos`} className="text-primary text-sm hover:underline">
+            Mis pedidos
+          </Link>
         </div>
         <form method="get" className="flex items-center gap-2">
           <div className="relative flex-1">

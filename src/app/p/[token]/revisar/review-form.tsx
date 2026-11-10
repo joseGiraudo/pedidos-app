@@ -42,9 +42,16 @@ export function ReviewForm({ token, draft }: { token: string; draft: DraftView }
         return;
       }
       toast.success(`Pedido #${result.number} enviado.`);
-      if (result.whatsappUrl) window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
+      // Navegar primero; abrir WhatsApp no debe bloquear la navegación si el popup falla.
       router.push(`/p/${token}/pedidos/${result.number}`);
       router.refresh();
+      if (result.whatsappUrl) {
+        try {
+          window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
+        } catch {
+          // El pedido ya quedó guardado aunque no se pueda abrir WhatsApp.
+        }
+      }
     });
   }
 

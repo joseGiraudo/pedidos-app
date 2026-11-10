@@ -289,6 +289,111 @@ export async function sendOrder(token: string, notes: string): Promise<SendResul
   }
 }
 
+export type RepeatResult = { ok: true; skipped: number } | { error: string };
+
+const ORDER_NOT_FOUND = "No encontramos ese pedido.";
+
+/**
+ * Vuelca las líneas de un pedido anterior al borrador actual, recalculando con los precios
+ * vigentes y salteando los artículos que ya no están disponibles. Devuelve cuántos se saltearon.
+ */
+export async function repeatOrder(token: string, orderNumber: number): Promise<RepeatResult> {
+  const customer = await resolveCustomerByToken(token);
+  if (!customer) return { error: LINK_INACTIVE };
+
+  if (!Number.isInteger(orderNumber)) return { error: ORDER_NOT_FOUND };
+
+  try {
+    const skipped = await db.transaction(async (tx) => {
+      const [source] = await tx
+        .select({ id: orders.id })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.customerId, customer.id),
+            eq(orders.number, orderNumber),
+          ),
+        )
+        .limit(1);
+      if (!source) throw new ActionError(ORDER_NOT_FOUND);
+
+      const items = await tx
+        .select({
+          productId: orderItems.productId,
+          srcQuantity: orderItems.quantity,
+          code: products.code,
+          name: products.name,
+          presentation: products.presentation,
+          brandName: brands.name,
+          categoryName: categories.name,
+          pricingUnit: products.pricingUnit,
+          orderMode: products.orderMode,
+          avgPieceWeightKg: products.avgPieceWeightKg,
+          wholesalePrice: products.wholesalePrice,
+          retailPrice: products.retailPrice,
+          isAvailable: products.isAvailable,
+          isActive: products.isActive,
+        })
+        .from(orderItems)
+        .innerJoin(products, eq(products.id, orderItems.productId))
+        .leftJoin(brands, eq(products.brandId, brands.id))
+        .leftJoin(categories, eq(products.categoryId, categories.id))
+        .where(eq(orderItems.orderId, source.id));
+
+      const draftId = await getOrCreateDraft(tx, customer);
+      let skippedCount = 0;
+
+      for (const it of items) {
+        if (!it.isActive || !it.isAvailable) {
+          skippedCount++;
+          continue;
+        }
+        const qty = Number(it.srcQuantity);
+        const line = computeLine({
+          listPriceCents: selectListPriceCents(it, customer.priceList),
+          discountPct: Number(customer.discountPct),
+          quantity: qty,
+          orderMode: it.orderMode,
+          avgPieceWeightKg: it.avgPieceWeightKg === null ? null : Number(it.avgPieceWeightKg),
+        });
+        const snapshot = {
+          code: it.code,
+          name: it.name,
+          presentation: it.presentation,
+          brandName: it.brandName,
+          categoryName: it.categoryName,
+          pricingUnit: it.pricingUnit,
+          orderMode: it.orderMode,
+          unitPrice: fromCents(line.unitPriceCents),
+          quantity: qty.toFixed(3),
+          originalQuantity: qty.toFixed(3),
+          estimatedWeightKg: line.estimatedWeightKg === null ? null : line.estimatedWeightKg.toFixed(3),
+          estimatedLineTotal: fromCents(line.estimatedLineTotalCents),
+        };
+
+        const [existing] = await tx
+          .select({ id: orderItems.id })
+          .from(orderItems)
+          .where(and(eq(orderItems.orderId, draftId), eq(orderItems.productId, it.productId)))
+          .limit(1);
+        if (existing) {
+          await tx.update(orderItems).set(snapshot).where(eq(orderItems.id, existing.id));
+        } else {
+          await tx.insert(orderItems).values({ orderId: draftId, productId: it.productId, ...snapshot });
+        }
+      }
+
+      await recomputeDraftTotals(tx, draftId, customer);
+      return skippedCount;
+    });
+
+    return { ok: true, skipped };
+  } catch (error) {
+    if (error instanceof ActionError) return { error: error.message };
+    throw error;
+  }
+}
+
 /** Vacía el borrador del cliente (elimina sus líneas). */
 export async function clearDraft(token: string): Promise<DraftResult> {
   const customer = await resolveCustomerByToken(token);
