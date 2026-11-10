@@ -66,7 +66,7 @@ export type CustomerContext = {
 /**
  * Como `resolveCustomerByToken`, pero trae además los datos del proveedor que necesitan el
  * catálogo y el envío (nombre, WhatsApp, flags de marcas/categorías), en una sola consulta.
- * No registra `last_seen_at` (lo hace `resolveCustomerByToken` en la vista principal).
+ * Registra `last_seen_at` best-effort (es la entrada principal de la vista del kiosquero).
  */
 export async function resolveCustomerContext(token: string): Promise<CustomerContext | null> {
   if (!token) return null;
@@ -90,6 +90,12 @@ export async function resolveCustomerContext(token: string): Promise<CustomerCon
     .limit(1);
 
   if (!row || !row.isActive) return null;
+
+  try {
+    await db.update(customers).set({ lastSeenAt: new Date() }).where(eq(customers.id, row.id));
+  } catch {
+    // last_seen_at es informativo; si falla, el acceso sigue válido.
+  }
 
   return {
     customer: {
