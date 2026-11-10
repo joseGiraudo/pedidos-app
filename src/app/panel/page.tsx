@@ -43,6 +43,9 @@ export default async function PanelPage() {
           <Button variant="outline" render={<Link href="/panel/articulos" />}>
             Artículos
           </Button>
+          <Button variant="outline" render={<Link href="/panel/clientes" />}>
+            Clientes
+          </Button>
           {supplier?.useCategories && (
             <Button variant="outline" render={<Link href="/panel/categorias" />}>
               Categorías
