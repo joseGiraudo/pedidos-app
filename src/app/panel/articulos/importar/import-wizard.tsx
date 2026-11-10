@@ -13,6 +13,7 @@ import {
   type ColumnMapping,
 } from "@/lib/import/mapping";
 import type { RawSheet } from "@/lib/import/parse";
+import type { ImportMode, MissingAction } from "@/lib/import/preview";
 
 import {
   parseSpreadsheet,
@@ -31,6 +32,18 @@ const TAXONOMY_FIELDS: Record<string, "brand" | "category"> = {
   marca: "brand",
   categoria: "category",
 };
+
+const MODE_OPTIONS: { value: ImportMode; label: string }[] = [
+  { value: "upsert", label: "Agregar y actualizar" },
+  { value: "add_only", label: "Solo agregar nuevos" },
+  { value: "update_prices_only", label: "Solo actualizar precios" },
+];
+
+const MISSING_OPTIONS: { value: MissingAction; label: string }[] = [
+  { value: "keep", label: "Dejarlos como están" },
+  { value: "mark_out_of_stock", label: "Marcarlos sin stock" },
+  { value: "deactivate", label: "Darlos de baja" },
+];
 
 const STATUS_LABELS: Record<PreviewRowDto["status"], string> = {
   create: "Nuevo",
@@ -58,6 +71,8 @@ export function ImportWizard({ usesOwnCodes, useBrands, useCategories }: ImportW
   const [step, setStep] = useState<Step>("upload");
   const [sheet, setSheet] = useState<RawSheet | null>(null);
   const [mapping, setMapping] = useState<ColumnMapping>(emptyMapping());
+  const [mode, setMode] = useState<ImportMode>("upsert");
+  const [missingAction, setMissingAction] = useState<MissingAction>("keep");
   const [preview, setPreview] = useState<Extract<PreviewResult, { ok: true }> | null>(null);
   const [pending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -109,7 +124,7 @@ export function ImportWizard({ usesOwnCodes, useBrands, useCategories }: ImportW
         headers: sheet.headers,
         rows: sheet.rows,
         mapping,
-        mode: "upsert",
+        mode,
       });
       if ("error" in result) {
         toast.error(result.error);
@@ -181,6 +196,22 @@ export function ImportWizard({ usesOwnCodes, useBrands, useCategories }: ImportW
               </div>
             ))}
           </div>
+
+          <div className="mt-4 flex max-w-xs flex-col gap-1">
+            <Label htmlFor="import-mode">Modo de importación</Label>
+            <select
+              id="import-mode"
+              className={selectClass}
+              value={mode}
+              onChange={(e) => setMode(e.target.value as ImportMode)}
+            >
+              {MODE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setStep("upload")} disabled={pending}>
@@ -211,6 +242,27 @@ export function ImportWizard({ usesOwnCodes, useBrands, useCategories }: ImportW
         </div>
 
         <PreviewTable rows={rows} />
+
+        {summary.missing > 0 && (
+          <div className="flex max-w-md flex-col gap-1 rounded-xl border p-4">
+            <Label htmlFor="missing-action">
+              {summary.missing} {summary.missing === 1 ? "artículo" : "artículos"} del catálogo no
+              {summary.missing === 1 ? " está" : " están"} en la planilla
+            </Label>
+            <select
+              id="missing-action"
+              className={selectClass}
+              value={missingAction}
+              onChange={(e) => setMissingAction(e.target.value as MissingAction)}
+            >
+              {MISSING_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setStep("map")} disabled={pending}>

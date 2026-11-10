@@ -17,6 +17,9 @@ import {
 /** Modo de importación (ver requisitos.md). `upsert` = agregar y actualizar (default). */
 export type ImportMode = "upsert" | "add_only" | "update_prices_only";
 
+/** Qué hacer con los artículos del catálogo que la planilla no menciona (ver requisitos.md). */
+export type MissingAction = "keep" | "mark_out_of_stock" | "deactivate";
+
 /** Estado de una fila en la vista previa. */
 export type RowStatus = "create" | "update" | "possible_duplicate" | "skip" | "error";
 
@@ -63,6 +66,8 @@ export type PreviewSummary = {
   possibleDuplicate: number;
   skip: number;
   error: number;
+  /** Artículos del catálogo que la planilla no menciona (para la acción de ausentes). */
+  missing: number;
 };
 
 export type Preview = { rows: PreviewRow[]; summary: PreviewSummary };
@@ -282,12 +287,17 @@ export function buildPreview(input: PreviewInput): Preview {
     };
   });
 
+  // Ausentes: artículos existentes que ninguna fila referencia (ni actualiza ni omite por existir).
+  const touchedIds = new Set(previewRows.map((r) => r.matchId).filter((id): id is string => !!id));
+  const missing = existing.filter((p) => !touchedIds.has(p.id)).length;
+
   const summary: PreviewSummary = {
     create: previewRows.filter((r) => r.status === "create").length,
     update: previewRows.filter((r) => r.status === "update").length,
     possibleDuplicate: previewRows.filter((r) => r.status === "possible_duplicate").length,
     skip: previewRows.filter((r) => r.status === "skip").length,
     error: previewRows.filter((r) => r.status === "error").length,
+    missing,
   };
 
   return { rows: previewRows, summary };
