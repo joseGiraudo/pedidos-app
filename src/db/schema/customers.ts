@@ -15,6 +15,7 @@ export const customers = pgTable(
     contactName: text("contact_name"),
     phone: text("phone"),
     address: text("address"),
+    city: text("city"),
     notes: text("notes"),
     priceList: priceList("price_list").notNull().default("wholesale"),
     discountPct: numeric("discount_pct", { precision: 5, scale: 2 }).notNull().default("0"),

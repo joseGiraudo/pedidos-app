@@ -16,3 +16,10 @@ export function formatMoney(value: string | number): string {
   if (!Number.isFinite(n)) return "—";
   return arsFormatter.format(n);
 }
+
+/** Fecha en formato local dd/mm/aaaa. */
+export function formatDate(date: Date): string {
+  const d = String(date.getDate()).padStart(2, "0");
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  return `${d}/${m}/${date.getFullYear()}`;
+}

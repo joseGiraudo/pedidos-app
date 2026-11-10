@@ -434,3 +434,74 @@ que "lista filtrada" sea idéntica en pantalla y export.
 cada paso (se reenvía la matriz ya parseada); `neon-http` (ya descartado, la importación necesita
 transacciones interactivas); elección por fila de "es el mismo / es otro" para duplicados (UI pesada;
 se difiere); actualizar unidad/kg desde la importación.
+
+## 2026-11-10 · Clientes, link personal y andamiaje de `/p/*` (Etapa 5)
+
+**Motivo**: cierra la Etapa 5. ABM de clientes en `/panel/clientes` (alta, edición, baja lógica,
+buscador por nombre y filtro de estado) con el patrón habitual: validación compartida en
+`src/lib/validations/customer.ts` (forma cruda + `toCustomerValues`, sin `.transform` que cambie
+tipos, igual que `catalog.ts`), server actions con `getCurrentTenant()` y los helpers de `tenant.ts`
+(`withTenant`, `assertOwned`). El teléfono se guarda **normalizado a sólo dígitos** (reusa
+`normalizeWhatsapp`) porque alimenta el botón de WhatsApp; el descuento como `numeric(5,2)`.
+**Lista simple, no TanStack**: a la escala del MVP (~50 clientes por proveedor, `requisitos.md`) la
+lista es una tabla server-rendered con un `<form method="get">` para buscador + estado, sin la
+maquinaria de paginación/orden en el servidor de `/panel/articulos` (sería sobre-ingeniería).
+**Token del link**: `randomBytes(24).toString("base64url")` (32 chars, único global), igual que el
+seed. Se genera en el alta y se puede **regenerar** (invalida el link anterior, con confirmación) o
+cortar **dando de baja** al cliente: el `is_active` gobierna tanto la baja lógica como el acceso por
+link. Ante la (muy improbable) colisión del `UNIQUE` del token, create/regenerate reintentan.
+**Compartir por WhatsApp**: helper puro `src/lib/customer-link.ts` (`buildCustomerLink`,
+`buildShareMessage`, `buildWhatsappShareUrl`, con tests) arma el link `${BETTER_AUTH_URL}/p/<token>`
+y el `wa.me` con el mensaje de invitación; el botón se deshabilita si el cliente no tiene teléfono.
+**Andamiaje de `/p/*`** (el catálogo y el pedido son Etapa 6): `src/app/p/[token]/layout.tsx` fija
+`robots: { index: false }` (noindex heredado a todo `/p/*`); `page.tsx` resuelve el token con
+`src/lib/customer-access.ts` (`resolveCustomerByToken`, **sin tenant**: el token identifica al cliente;
+`last_seen_at` best-effort) y muestra la pantalla de "link inactivo" si no existe o está dado de baja,
+o un placeholder de bienvenida si es válido.
+**Rate limit en memoria (best-effort)** — elegido con el usuario: `src/lib/rate-limit.ts` (ventana
+fija por clave en un `Map`, con barrido de vencidos y test puro) aplicado en `src/proxy.ts`, que suma
+`/p/:path*` al `matcher` y limita por IP (`x-forwarded-for`) devolviendo **429** al superar el umbral.
+`/p/*` **no** pasa por el guard de sesión (acceso público por token). Se asume que en serverless el
+estado es por instancia (orientativo, no estricto), suficiente para encarecer la fuerza bruta de
+tokens de 32+ caracteres a la escala del MVP.
+**Descartado**: rate limit con tabla en Neon o Upstash Redis (más infra/latencia/dependencias de lo
+necesario para el MVP); lista con TanStack/paginación server-side para clientes (sobra a ~50);
+borrar clientes (viola la baja lógica).
+
+## 2026-11-10 · Pedido del cliente en `/p/[token]` (Etapa 6)
+
+**Motivo**: cierra la Etapa 6, el flujo completo del kiosquero (ver `requisitos.md` y
+`reglas-de-negocio.md`): catálogo con los precios de su lista, borrador con + / −, revisión, envío
+(congela precios y abre WhatsApp) e historial con "repetir pedido". Llega hasta `sent`; la gestión
+del proveedor es Etapa 7.
+**Borrador en `orders` (number nullable)** — acordado con el usuario: el borrador reutiliza
+`orders` (status=`draft`) + `order_items`, sin tablas nuevas. Como el número se asigna al **enviar**,
+la migración `0005` hace `orders.number` **nullable** (el `unique(supplier_id, number)` sigue válido:
+Postgres permite varios `NULL`). Un solo borrador por cliente. El número se asigna con **lock** sobre
+`suppliers.next_order_number` (mismo patrón que `createProduct`).
+**Acceso público sin tenant**: toda página/action de `/p/[token]` resuelve el token en el servidor
+(`src/lib/customer-access.ts`: `resolveCustomerByToken` / `resolveCustomerContext` que trae también
+WhatsApp y flags del proveedor) y **nunca** confía en `supplierId`/`customerId`/precios del cliente.
+Las actions (`src/app/p/[token]/actions.ts`: `setDraftItem`, `clearDraft`, `sendOrder`, `repeatOrder`)
+validan pertenencia del artículo al proveedor y recalculan todo en el servidor.
+**Cálculo en centavos** (`src/lib/order-pricing.ts`, puro + tests): `selectListPriceCents` (retail
+NULL usa mayorista), `computeLine` (por unidad/pieza/kg; por pieza, estimado = piezas × peso promedio
+× precio/kg) y `computeOrderTotals` (`estimatedTotal` = Σ líneas con descuento; `discountAmount` = la
+diferencia). El descuento del cliente se aplica al precio; el redondeo a pesos **no** se aplica a
+descuentos. El borrador se **lee con precios vigentes** (`src/lib/order-draft.ts`: `loadDraftView`,
+`recomputeDraftTotals`); cada línea guarda el `unit_price` del momento como **snapshot** para detectar
+cambios de precio. Al **enviar** se re-congelan copias y precios y se registra `order_events` (`sent`).
+**Aviso de precios cambiados / sin stock**: la revisión compara snapshot vs vigente (banner + marca
+por línea) y **bloquea el envío** si hay artículos sin stock o dados de baja (regla). La pantalla de
+link inactivo (Etapa 5) se extrajo a `link-inactive.tsx` y se reutiliza en todas las páginas.
+**WhatsApp**: `src/lib/order-message.ts` (puro + tests) arma el mensaje según la plantilla y
+`buildOrderWhatsappUrl` apunta al WhatsApp del proveedor; el pedido queda guardado aunque no abra.
+**UI mobile-first**: catálogo agrupado por categoría con buscador `GET` y carrito optimista
+(`order-builder.tsx`, `useTransition`) con barra fija de total; historial y detalle con "repetir
+pedido". Etiquetas de estado en `src/lib/order-status.ts` (reutilizable en Etapa 7).
+**e2e**: `e2e/pedido.spec.ts` (arma/envía/repite un pedido); el `global-teardown` ahora limpia también
+los datos de negocio del proveedor de prueba (pedidos, artículos, clientes, etc.) para poder borrar el
+supplier. Test pesado con `test.setTimeout(120s)` por la compilación on-demand del dev server; no corre
+en CI (igual que el e2e de auth).
+**Descartado**: tablas de borrador separadas (duplicaban lógica); confiar en precios/ids del cliente;
+asignar el número al crear el borrador (gastaría números en borradores nunca enviados).
