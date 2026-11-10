@@ -47,13 +47,13 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 
 ## Etapa 4 — Importación y exportación
 
-- [ ] Lectura de CSV y Excel
-- [ ] Mapeo de columnas y guardado del mapeo
-- [ ] Vista previa: crear / actualizar / errores / posibles duplicados
-- [ ] Modos de importación y opción para artículos ausentes
-- [ ] Aplicar importación en transacción + batch `import`
-- [ ] Exportación CSV y Excel (código como texto)
-- [ ] Tests con planillas de ejemplo (ceros a la izquierda, duplicados, celdas vacías)
+- [x] Lectura de CSV y Excel
+- [x] Mapeo de columnas y guardado del mapeo
+- [x] Vista previa: crear / actualizar / errores / posibles duplicados
+- [x] Modos de importación y opción para artículos ausentes
+- [x] Aplicar importación en transacción + batch `import`
+- [x] Exportación CSV y Excel (código como texto)
+- [x] Tests con planillas de ejemplo (ceros a la izquierda, duplicados, celdas vacías)
 
 ## Etapa 5 — Clientes
 

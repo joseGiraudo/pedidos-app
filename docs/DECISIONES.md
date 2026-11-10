@@ -401,3 +401,36 @@ id mal formado (se traduce a "Revisá los datos ingresados").
 CLAUDE.md); validar el uuid en el schema Zod compartido (lo complica y el regex en la action
 alcanza); borrar el `brand_id` / `category_id` existente de productos viejos al apagar el flag
 (el ocultamiento es presentacional: si el proveedor reactiva el flag, recupera su dato).
+
+## 2026-11-10 · Importación/exportación en el servidor con lógica pura (Etapa 4)
+
+**Motivo**: cierra la Etapa 4. Las librerías de planillas (`papaparse` + `xlsx`/SheetJS) se usan
+**solo en el servidor** (actions y route handler), no en el bundle del cliente. El parseo y la
+clasificación viven en `src/lib/import/` como **lógica pura** testeable: `parse.ts` (CSV/Excel →
+`RawSheet` de strings), `mapping.ts` (campos canónicos + `autoDetectMapping` + parsers de celda),
+`preview.ts` (`buildPreview` clasifica crear/actualizar/posible-duplicado/omitir/error) y
+`export.ts`. SheetJS se lee con `raw:false` y `defval:""` para **preservar los ceros a la izquierda**
+del código (texto, no número); al exportar a Excel la columna de código va con formato texto
+(`t:"s"`, `z:"@"`). El cruce es por `code` normalizado o, si no hay columna de código, por
+`nombre+presentación` tolerante.
+**Flujo en 3 actions** (`articulos/importar/actions.ts`): `parseSpreadsheet` (lee el `File`, propone
+mapeo), `previewImport` y `applyImport`. El cliente conserva la matriz parseada y la reenvía; el
+servidor **re-corre `buildPreview`** al aplicar (nunca confía en el cliente). `applyImport` corre en
+una transacción: altas (generando códigos con lock del proveedor, mismo patrón que `createProduct`),
+alta de marcas/categorías nuevas, `price_update_batches` (kind=`import`, reutiliza el enum existente)
+con sus `price_changes` por precio que cambia, y la acción de artículos ausentes.
+**Decisiones de alcance**: las **celdas vacías no borran** (solo se actualiza lo provisto); la
+estructura unidad/kg (y el peso) **solo se define al crear**, no al actualizar (cambiarla en masa es
+raro y riesgoso); un **posible duplicado se crea** (opción conservadora "es otro", nunca pisa en
+silencio) y se cuenta aparte para que el proveedor lo revise. `affected_count` del batch = artículos
+creados + actualizados.
+**Mapeo recordado**: columna `suppliers.import_column_mapping` (jsonb, nullable, migración `0004`).
+Auto-detección por encabezado **siempre** + se guarda el último mapeo como override (decidido con el
+usuario; se itera la UX al probarlo). `reconcileMapping` descarta columnas que ya no existen.
+**Exportación**: route handler `GET /panel/articulos/export` (CSV/Excel, `?template=1` para la
+plantilla vacía). Se extrae `product-filters.ts` (WHERE/orden/params) compartido con la lista para
+que "lista filtrada" sea idéntica en pantalla y export.
+**Descartado**: parsear en el cliente (deps en el bundle, lógica duplicada); re-subir el archivo en
+cada paso (se reenvía la matriz ya parseada); `neon-http` (ya descartado, la importación necesita
+transacciones interactivas); elección por fila de "es el mismo / es otro" para duplicados (UI pesada;
+se difiere); actualizar unidad/kg desde la importación.
