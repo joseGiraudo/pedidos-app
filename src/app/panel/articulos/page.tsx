@@ -1,6 +1,6 @@
 import { and, asc, count, desc, eq, ilike, isNull, or } from "drizzle-orm";
 import { cn } from "cn";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, UploadIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -138,10 +138,19 @@ export default async function ArticulosPage({
             {total} {total === 1 ? "artículo" : "artículos"}
           </p>
         </div>
-        <Link href="/panel/articulos/nuevo" className={cn(buttonVariants({ size: "lg" }))}>
-          <PlusIcon />
-          Agregar artículo
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/panel/articulos/importar"
+            className={cn(buttonVariants({ size: "lg", variant: "outline" }))}
+          >
+            <UploadIcon />
+            Importar
+          </Link>
+          <Link href="/panel/articulos/nuevo" className={cn(buttonVariants({ size: "lg" }))}>
+            <PlusIcon />
+            Agregar artículo
+          </Link>
+        </div>
       </div>
 
       <ArticlesToolbar
