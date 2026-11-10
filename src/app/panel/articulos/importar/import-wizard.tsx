@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -16,6 +17,7 @@ import type { RawSheet } from "@/lib/import/parse";
 import type { ImportMode, MissingAction } from "@/lib/import/preview";
 
 import {
+  applyImport,
   parseSpreadsheet,
   previewImport,
   type PreviewRowDto,
@@ -76,6 +78,7 @@ export function ImportWizard({ usesOwnCodes, useBrands, useCategories }: ImportW
   const [preview, setPreview] = useState<Extract<PreviewResult, { ok: true }> | null>(null);
   const [pending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   function isHiddenField(field: CanonicalField): boolean {
     const taxonomy = TAXONOMY_FIELDS[field];
@@ -132,6 +135,30 @@ export function ImportWizard({ usesOwnCodes, useBrands, useCategories }: ImportW
       }
       setPreview(result);
       setStep("preview");
+    });
+  }
+
+  function handleApply() {
+    if (!sheet) return;
+    startTransition(async () => {
+      const result = await applyImport({
+        headers: sheet.headers,
+        rows: sheet.rows,
+        mapping,
+        mode,
+        missingAction,
+      });
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(
+        `Importación lista: ${result.created} nuevos, ${result.updated} actualizados${
+          result.missing > 0 ? `, ${result.missing} ausentes` : ""
+        }.`,
+      );
+      router.push("/panel/articulos");
+      router.refresh();
     });
   }
 
@@ -268,12 +295,29 @@ export function ImportWizard({ usesOwnCodes, useBrands, useCategories }: ImportW
           <Button variant="outline" onClick={() => setStep("map")} disabled={pending}>
             Atrás
           </Button>
+          <Button onClick={handleApply} disabled={pending || !canApply(summary, missingAction)}>
+            {pending ? "Importando…" : "Confirmar importación"}
+          </Button>
         </div>
+        {summary.error > 0 && (
+          <p className="text-muted-foreground text-xs">
+            Las {summary.error} filas con error se omiten; el resto se importa igual.
+          </p>
+        )}
       </div>
     );
   }
 
   return null;
+}
+
+/** Hay algo para aplicar si se crea/actualiza algo o si se actúa sobre los ausentes. */
+function canApply(
+  summary: Extract<PreviewResult, { ok: true }>["summary"],
+  missingAction: MissingAction,
+): boolean {
+  const changes = summary.create + summary.update + summary.possibleDuplicate;
+  return changes > 0 || (summary.missing > 0 && missingAction !== "keep");
 }
 
 function SummaryCard({
