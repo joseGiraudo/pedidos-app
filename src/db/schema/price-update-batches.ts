@@ -1,7 +1,7 @@
 import { index, integer, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
-import { priceBatchKind, priceTarget } from "./_enums";
+import { priceBatchKind, priceRoundingMode, priceTarget } from "./_enums";
 import { id, timestamps } from "./_shared";
 import { suppliers } from "./suppliers";
 
@@ -16,6 +16,7 @@ export const priceUpdateBatches = pgTable(
     description: text("description").notNull(),
     percentage: numeric("percentage", { precision: 6, scale: 2 }),
     rounding: integer("rounding"),
+    roundingMode: priceRoundingMode("rounding_mode"),
     target: priceTarget("target").notNull(),
     affectedCount: integer("affected_count").notNull().default(0),
     createdBy: text("created_by")

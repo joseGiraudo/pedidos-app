@@ -5,16 +5,18 @@ import {
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
+  type RowSelectionState,
 } from "@tanstack/react-table";
 import { cn } from "cn";
 import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon } from "lucide-react";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { formatMoney } from "@/lib/format";
 
 import { ArticleRowActions } from "./article-row-actions";
+import { PriceCell } from "./price-cell";
+import { PriceIncreaseDialog } from "./price-increase-dialog";
 import { useUrlParams } from "./use-url-params";
 
 export type ProductRow = {
@@ -42,6 +44,35 @@ type ArticlesTableProps = {
 
 const RIGHT_ALIGNED = new Set(["wholesalePrice", "retailPrice"]);
 
+// Checkbox nativo con estado "indeterminado" (algunas filas, no todas), que solo se puede
+// fijar por JS. Se usa en el encabezado de selección de la tabla.
+function SelectCheckbox({
+  checked,
+  indeterminate,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  indeterminate?: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  label: string;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = !checked && Boolean(indeterminate);
+  }, [checked, indeterminate]);
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      aria-label={label}
+      checked={checked}
+      onChange={onChange}
+      className="size-4 cursor-pointer align-middle accent-primary"
+    />
+  );
+}
+
 export function ArticlesTable({
   rows,
   useBrands,
@@ -52,6 +83,14 @@ export function ArticlesTable({
   const update = useUrlParams();
   const { page, pageSize, total } = pagination;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
+  // La selección es por página visible (la tabla pagina en el servidor): al cambiar el
+  // conjunto de filas —página, filtros u orden— se limpia para no arrastrar ids ocultos.
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const rowIdsKey = rows.map((r) => r.id).join(",");
+  useEffect(() => {
+    setRowSelection({});
+  }, [rowIdsKey]);
 
   const columns = useMemo<ColumnDef<ProductRow>[]>(() => {
     function sortableHeader(label: string, key: SortKey) {
@@ -79,6 +118,24 @@ export function ArticlesTable({
     }
 
     const cols: ColumnDef<ProductRow>[] = [
+      {
+        id: "select",
+        header: ({ table }) => (
+          <SelectCheckbox
+            label="Seleccionar todos"
+            checked={table.getIsAllRowsSelected()}
+            indeterminate={table.getIsSomeRowsSelected()}
+            onChange={table.getToggleAllRowsSelectedHandler()}
+          />
+        ),
+        cell: ({ row }) => (
+          <SelectCheckbox
+            label={`Seleccionar «${row.original.name}»`}
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+          />
+        ),
+      },
       {
         accessorKey: "code",
         header: () => sortableHeader("Código", "code"),
@@ -127,17 +184,26 @@ export function ArticlesTable({
       {
         accessorKey: "wholesalePrice",
         header: () => <div className="text-right">{sortableHeader("Mayorista", "wholesale")}</div>,
-        cell: ({ row }) => formatMoney(row.original.wholesalePrice),
+        cell: ({ row }) => (
+          <PriceCell
+            id={row.original.id}
+            name={row.original.name}
+            field="wholesale"
+            value={row.original.wholesalePrice}
+          />
+        ),
       },
       {
         accessorKey: "retailPrice",
-        header: "Minorista",
-        cell: ({ row }) =>
-          row.original.retailPrice ? (
-            formatMoney(row.original.retailPrice)
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          ),
+        header: () => <div className="text-right">Minorista</div>,
+        cell: ({ row }) => (
+          <PriceCell
+            id={row.original.id}
+            name={row.original.name}
+            field="retail"
+            value={row.original.retailPrice}
+          />
+        ),
       },
       {
         accessorKey: "isAvailable",
@@ -184,13 +250,34 @@ export function ArticlesTable({
     manualPagination: true,
     manualSorting: true,
     pageCount,
+    getRowId: (row) => row.id,
+    enableRowSelection: true,
+    state: { rowSelection },
+    onRowSelectionChange: setRowSelection,
   });
 
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
+  const selectedCount = table.getSelectedRowModel().rows.length;
 
   return (
     <div className="flex flex-col gap-3">
+      {selectedCount > 0 && (
+        <div className="bg-muted/50 flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2">
+          <span className="text-sm font-medium">
+            {selectedCount} {selectedCount === 1 ? "seleccionado" : "seleccionados"}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => table.resetRowSelection()}>
+              Limpiar selección
+            </Button>
+            <PriceIncreaseDialog
+              rows={table.getSelectedRowModel().rows.map((r) => r.original)}
+              onApplied={() => table.resetRowSelection()}
+            />
+          </div>
+        </div>
+      )}
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-muted-foreground">
@@ -224,7 +311,11 @@ export function ArticlesTable({
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className={cn("hover:bg-muted/30", !row.original.isActive && "opacity-60")}
+                  className={cn(
+                    "hover:bg-muted/30",
+                    row.getIsSelected() && "bg-muted/40",
+                    !row.original.isActive && "opacity-60",
+                  )}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td

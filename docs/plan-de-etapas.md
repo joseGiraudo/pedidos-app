@@ -39,21 +39,21 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 
 ## Etapa 3 — Precios
 
-- [ ] Edición directa del precio en la lista (graba `price_changes`)
-- [ ] Selección múltiple y acciones masivas
-- [ ] Modal de aumento %: objetivo, redondeo, vista previa
-- [ ] Grabar `price_update_batches` + `price_changes`
-- [ ] Tests de `pricing.ts` (porcentajes, redondeo, centavos)
+- [x] Edición directa del precio en la lista (graba `price_changes`)
+- [x] Selección múltiple y acciones masivas
+- [x] Modal de aumento %: objetivo, redondeo, vista previa
+- [x] Grabar `price_update_batches` + `price_changes`
+- [x] Tests de `pricing.ts` (porcentajes, redondeo, centavos)
 
 ## Etapa 4 — Importación y exportación
 
-- [ ] Lectura de CSV y Excel
-- [ ] Mapeo de columnas y guardado del mapeo
-- [ ] Vista previa: crear / actualizar / errores / posibles duplicados
-- [ ] Modos de importación y opción para artículos ausentes
-- [ ] Aplicar importación en transacción + batch `import`
-- [ ] Exportación CSV y Excel (código como texto)
-- [ ] Tests con planillas de ejemplo (ceros a la izquierda, duplicados, celdas vacías)
+- [x] Lectura de CSV y Excel
+- [x] Mapeo de columnas y guardado del mapeo
+- [x] Vista previa: crear / actualizar / errores / posibles duplicados
+- [x] Modos de importación y opción para artículos ausentes
+- [x] Aplicar importación en transacción + batch `import`
+- [x] Exportación CSV y Excel (código como texto)
+- [x] Tests con planillas de ejemplo (ceros a la izquierda, duplicados, celdas vacías)
 
 ## Etapa 5 — Clientes
 

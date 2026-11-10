@@ -341,6 +341,48 @@ filtro de disponibilidad (`avail`) ya existía y se conserva.
 físico (viola la baja lógica); acciones masivas / selección múltiple (son de Etapa 3); un
 componente `dropdown-menu` de shadcn (los botones-ícono inline alcanzan sin sumar dependencias).
 
+## 2026-11-06 · Aumento masivo: modal con Base UI y vista previa en el cliente (Etapa 3)
+
+**Motivo**: cierra la Etapa 3. La lista suma **selección múltiple** (TanStack `enableRowSelection`
++ `getRowId` por id de producto) con una barra de acciones cuando hay filas elegidas. La selección
+es **por página visible** (la tabla pagina en el servidor): un `useEffect` la limpia al cambiar el
+conjunto de filas (página, filtros u orden), para no arrastrar ids que el usuario ya no ve. El
+aumento sobre "todos los filtrados" (más allá de la página) queda como mejora futura.
+**Modal**: `price-increase-dialog.tsx` usa el **Dialog de `@base-ui/react`** (ya es dependencia, lo
+usa `Input`), sin correr el CLI de shadcn ni sumar deps —coherente con el criterio de no agregar
+`dialog`/`dropdown` por gusto—. Campos con `<select>` nativos (como Configuración): porcentaje
+(acepta negativo = rebaja; se parsea aparte porque `parseArgNumber` rechaza el signo), target,
+múltiplo de redondeo y dirección (deshabilitada si no hay redondeo), y descripción autogenerada
+editable.
+**Vista previa en el cliente**: como `pricing.ts` es **puro**, el modal calcula la previa con
+`computeProductChange` sobre los precios que ya tiene la fila seleccionada —instantáneo, sin ir al
+servidor—. No hay action `previewPriceIncrease`: el servidor **recalcula** en `applyPriceIncrease`
+(nunca confía en el cliente), así la previa es solo indicativa.
+**Grabado** (`applyPriceIncrease` en `pricing-actions.ts`): en una transacción crea el
+`price_update_batches` (kind=increase, percentage, rounding/rounding_mode, target, affected_count) y,
+**solo por los artículos que realmente cambian**, un `price_changes` colgado del batch + el `UPDATE`.
+Se filtran los no-op para no crear batches/registros vacíos. Solo toca productos del tenant
+(`tenantEq` + `inArray`). `created_by` sale de `getCurrentActor()`.
+**Descartado**: action de preview en el servidor (round-trip innecesario teniendo la lógica pura);
+correr `shadcn add dialog` (el Dialog de Base UI alcanza); aumentar sobre el filtro completo en esta
+etapa (requiere resolver los ids server-side; se difiere).
+
+## 2026-11-06 · Redondeo de aumentos elegible por operación (Etapa 3)
+
+**Motivo**: el redondeo de un aumento masivo no es una política fija del sistema sino una
+**elección del proveedor en cada operación**: el múltiplo en pesos (ninguno / $10 / $50 / $100)
+y además la **dirección** (hacia arriba o al más cercano). El modelo solo guardaba el múltiplo
+(`price_update_batches.rounding` int), así que se agrega el enum `price_rounding_mode`
+(`up`/`nearest`) y la columna nullable `rounding_mode` (NULL cuando no hubo redondeo). La
+lógica vive en `src/lib/pricing.ts` (pura, en **centavos enteros** para no arrastrar float,
+según CLAUDE.md): `applyPercentage` (acepta negativos = rebaja), `roundToMultiple` (`up` =
+`Math.ceil`, `nearest` = `Math.round`; múltiplo 0 = sin redondeo; nunca negativo) y
+`computeProductChange` (respeta el target y deja el minorista NULL en NULL —hereda del
+mayorista—). Tests en `pricing.test.ts`. Para `created_by` (NOT NULL → `user.id`) se agrega
+`getCurrentActor()` en `session.ts` (el `Tenant` solo trae `supplierId`). Migración `0003`.
+**Descartado**: fijar una sola política de redondeo en el sistema (menos flexible); operar en
+pesos con float (arrastra errores de redondeo, viola la regla de dinero).
+
 ## 2026-11-05 · Ocultar marca/categoría se aplica también en el servidor (Etapa 2)
 
 **Motivo**: cierra la Etapa 2. El ocultamiento por flags `use_brands` / `use_categories` ya
@@ -359,3 +401,36 @@ id mal formado (se traduce a "Revisá los datos ingresados").
 CLAUDE.md); validar el uuid en el schema Zod compartido (lo complica y el regex en la action
 alcanza); borrar el `brand_id` / `category_id` existente de productos viejos al apagar el flag
 (el ocultamiento es presentacional: si el proveedor reactiva el flag, recupera su dato).
+
+## 2026-11-10 · Importación/exportación en el servidor con lógica pura (Etapa 4)
+
+**Motivo**: cierra la Etapa 4. Las librerías de planillas (`papaparse` + `xlsx`/SheetJS) se usan
+**solo en el servidor** (actions y route handler), no en el bundle del cliente. El parseo y la
+clasificación viven en `src/lib/import/` como **lógica pura** testeable: `parse.ts` (CSV/Excel →
+`RawSheet` de strings), `mapping.ts` (campos canónicos + `autoDetectMapping` + parsers de celda),
+`preview.ts` (`buildPreview` clasifica crear/actualizar/posible-duplicado/omitir/error) y
+`export.ts`. SheetJS se lee con `raw:false` y `defval:""` para **preservar los ceros a la izquierda**
+del código (texto, no número); al exportar a Excel la columna de código va con formato texto
+(`t:"s"`, `z:"@"`). El cruce es por `code` normalizado o, si no hay columna de código, por
+`nombre+presentación` tolerante.
+**Flujo en 3 actions** (`articulos/importar/actions.ts`): `parseSpreadsheet` (lee el `File`, propone
+mapeo), `previewImport` y `applyImport`. El cliente conserva la matriz parseada y la reenvía; el
+servidor **re-corre `buildPreview`** al aplicar (nunca confía en el cliente). `applyImport` corre en
+una transacción: altas (generando códigos con lock del proveedor, mismo patrón que `createProduct`),
+alta de marcas/categorías nuevas, `price_update_batches` (kind=`import`, reutiliza el enum existente)
+con sus `price_changes` por precio que cambia, y la acción de artículos ausentes.
+**Decisiones de alcance**: las **celdas vacías no borran** (solo se actualiza lo provisto); la
+estructura unidad/kg (y el peso) **solo se define al crear**, no al actualizar (cambiarla en masa es
+raro y riesgoso); un **posible duplicado se crea** (opción conservadora "es otro", nunca pisa en
+silencio) y se cuenta aparte para que el proveedor lo revise. `affected_count` del batch = artículos
+creados + actualizados.
+**Mapeo recordado**: columna `suppliers.import_column_mapping` (jsonb, nullable, migración `0004`).
+Auto-detección por encabezado **siempre** + se guarda el último mapeo como override (decidido con el
+usuario; se itera la UX al probarlo). `reconcileMapping` descarta columnas que ya no existen.
+**Exportación**: route handler `GET /panel/articulos/export` (CSV/Excel, `?template=1` para la
+plantilla vacía). Se extrae `product-filters.ts` (WHERE/orden/params) compartido con la lista para
+que "lista filtrada" sea idéntica en pantalla y export.
+**Descartado**: parsear en el cliente (deps en el bundle, lógica duplicada); re-subir el archivo en
+cada paso (se reenvía la matriz ya parseada); `neon-http` (ya descartado, la importación necesita
+transacciones interactivas); elección por fila de "es el mismo / es otro" para duplicados (UI pesada;
+se difiere); actualizar unidad/kg desde la importación.

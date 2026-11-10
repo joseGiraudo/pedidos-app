@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 
 import { supplierPlan } from "./_enums";
 import { id, timestamps } from "./_shared";
@@ -17,5 +17,8 @@ export const suppliers = pgTable("suppliers", {
   nextProductCode: integer("next_product_code").notNull().default(1),
   nextOrderNumber: integer("next_order_number").notNull().default(1),
   isActive: boolean("is_active").notNull().default(true),
+  // Último mapeo de columnas usado al importar, para recordarlo (campo canónico → encabezado
+  // de la planilla del proveedor). Ver src/lib/import/mapping.ts.
+  importColumnMapping: jsonb("import_column_mapping").$type<Record<string, string | null>>(),
   ...timestamps,
 });
