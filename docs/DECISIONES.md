@@ -434,3 +434,36 @@ que "lista filtrada" sea idéntica en pantalla y export.
 cada paso (se reenvía la matriz ya parseada); `neon-http` (ya descartado, la importación necesita
 transacciones interactivas); elección por fila de "es el mismo / es otro" para duplicados (UI pesada;
 se difiere); actualizar unidad/kg desde la importación.
+
+## 2026-11-10 · Clientes, link personal y andamiaje de `/p/*` (Etapa 5)
+
+**Motivo**: cierra la Etapa 5. ABM de clientes en `/panel/clientes` (alta, edición, baja lógica,
+buscador por nombre y filtro de estado) con el patrón habitual: validación compartida en
+`src/lib/validations/customer.ts` (forma cruda + `toCustomerValues`, sin `.transform` que cambie
+tipos, igual que `catalog.ts`), server actions con `getCurrentTenant()` y los helpers de `tenant.ts`
+(`withTenant`, `assertOwned`). El teléfono se guarda **normalizado a sólo dígitos** (reusa
+`normalizeWhatsapp`) porque alimenta el botón de WhatsApp; el descuento como `numeric(5,2)`.
+**Lista simple, no TanStack**: a la escala del MVP (~50 clientes por proveedor, `requisitos.md`) la
+lista es una tabla server-rendered con un `<form method="get">` para buscador + estado, sin la
+maquinaria de paginación/orden en el servidor de `/panel/articulos` (sería sobre-ingeniería).
+**Token del link**: `randomBytes(24).toString("base64url")` (32 chars, único global), igual que el
+seed. Se genera en el alta y se puede **regenerar** (invalida el link anterior, con confirmación) o
+cortar **dando de baja** al cliente: el `is_active` gobierna tanto la baja lógica como el acceso por
+link. Ante la (muy improbable) colisión del `UNIQUE` del token, create/regenerate reintentan.
+**Compartir por WhatsApp**: helper puro `src/lib/customer-link.ts` (`buildCustomerLink`,
+`buildShareMessage`, `buildWhatsappShareUrl`, con tests) arma el link `${BETTER_AUTH_URL}/p/<token>`
+y el `wa.me` con el mensaje de invitación; el botón se deshabilita si el cliente no tiene teléfono.
+**Andamiaje de `/p/*`** (el catálogo y el pedido son Etapa 6): `src/app/p/[token]/layout.tsx` fija
+`robots: { index: false }` (noindex heredado a todo `/p/*`); `page.tsx` resuelve el token con
+`src/lib/customer-access.ts` (`resolveCustomerByToken`, **sin tenant**: el token identifica al cliente;
+`last_seen_at` best-effort) y muestra la pantalla de "link inactivo" si no existe o está dado de baja,
+o un placeholder de bienvenida si es válido.
+**Rate limit en memoria (best-effort)** — elegido con el usuario: `src/lib/rate-limit.ts` (ventana
+fija por clave en un `Map`, con barrido de vencidos y test puro) aplicado en `src/proxy.ts`, que suma
+`/p/:path*` al `matcher` y limita por IP (`x-forwarded-for`) devolviendo **429** al superar el umbral.
+`/p/*` **no** pasa por el guard de sesión (acceso público por token). Se asume que en serverless el
+estado es por instancia (orientativo, no estricto), suficiente para encarecer la fuerza bruta de
+tokens de 32+ caracteres a la escala del MVP.
+**Descartado**: rate limit con tabla en Neon o Upstash Redis (más infra/latencia/dependencias de lo
+necesario para el MVP); lista con TanStack/paginación server-side para clientes (sobra a ~50);
+borrar clientes (viola la baja lógica).

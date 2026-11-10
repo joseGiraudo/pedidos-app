@@ -57,10 +57,10 @@ Cada etapa termina desplegada, funcionando y con sus tests. Marcar `[x]` al comp
 
 ## Etapa 5 — Clientes
 
-- [ ] ABM de clientes con lista y descuento
-- [ ] Generación de token, regeneración y desactivación
-- [ ] Botón "Enviar link por WhatsApp"
-- [ ] Rate limit y `noindex` en `/p/*`
+- [x] ABM de clientes con lista y descuento
+- [x] Generación de token, regeneración y desactivación
+- [x] Botón "Enviar link por WhatsApp"
+- [x] Rate limit y `noindex` en `/p/*`
 
 ## Etapa 6 — Pedido del cliente
 
