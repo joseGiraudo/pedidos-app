@@ -70,6 +70,7 @@ export function CustomerLinkCell({ id, link, whatsappUrl }: CustomerLinkCellProp
             size="sm"
             variant="outline"
             title="Enviar el link por WhatsApp"
+            nativeButton={false}
             render={<a href={whatsappUrl} target="_blank" rel="noopener noreferrer" />}
           >
             <SendIcon />

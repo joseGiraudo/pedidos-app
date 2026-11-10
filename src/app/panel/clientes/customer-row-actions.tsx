@@ -41,6 +41,7 @@ export function CustomerRowActions({ id, businessName, isActive }: CustomerRowAc
         variant="ghost"
         aria-label={`Editar «${businessName}»`}
         title="Editar"
+        nativeButton={false}
         render={<Link href={`/panel/clientes/${id}/editar`} />}
       >
         <PencilIcon />

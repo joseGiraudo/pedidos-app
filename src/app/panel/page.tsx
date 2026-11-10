@@ -40,23 +40,23 @@ export default async function PanelPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" render={<Link href="/panel/articulos" />}>
+          <Button variant="outline" nativeButton={false} render={<Link href="/panel/articulos" />}>
             Artículos
           </Button>
-          <Button variant="outline" render={<Link href="/panel/clientes" />}>
+          <Button variant="outline" nativeButton={false} render={<Link href="/panel/clientes" />}>
             Clientes
           </Button>
           {supplier?.useCategories && (
-            <Button variant="outline" render={<Link href="/panel/categorias" />}>
+            <Button variant="outline" nativeButton={false} render={<Link href="/panel/categorias" />}>
               Categorías
             </Button>
           )}
           {supplier?.useBrands && (
-            <Button variant="outline" render={<Link href="/panel/marcas" />}>
+            <Button variant="outline" nativeButton={false} render={<Link href="/panel/marcas" />}>
               Marcas
             </Button>
           )}
-          <Button variant="outline" render={<Link href="/panel/configuracion" />}>
+          <Button variant="outline" nativeButton={false} render={<Link href="/panel/configuracion" />}>
             Configuración
           </Button>
           <form action={logout}>

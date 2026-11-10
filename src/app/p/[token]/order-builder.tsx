@@ -179,7 +179,7 @@ export function OrderBuilder({
               </span>
               <span className="text-lg font-semibold">{formatMoney(fromCents(totalCents))}</span>
             </div>
-            <Button size="lg" render={<Link href={`/p/${token}/revisar`} />}>
+            <Button size="lg" nativeButton={false} render={<Link href={`/p/${token}/revisar`} />}>
               Revisar pedido
             </Button>
           </div>

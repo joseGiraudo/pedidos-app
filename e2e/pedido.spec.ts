@@ -52,7 +52,7 @@ test("pedido: el kiosquero arma, envía y repite un pedido", async ({ page, cont
   await expect(page.getByRole("button", { name: "Agregar uno" })).toBeEnabled();
 
   // Revisar y enviar.
-  await page.getByRole("link", { name: "Revisar pedido" }).click();
+  await page.getByRole("button", { name: "Revisar pedido" }).click();
   await expect(page).toHaveURL(new RegExp(`/p/${token}/revisar`));
   await page.getByRole("button", { name: "Enviar pedido" }).click();
 
@@ -68,5 +68,5 @@ test("pedido: el kiosquero arma, envía y repite un pedido", async ({ page, cont
   await page.getByRole("link", { name: /Pedido #\d+/ }).first().click();
   await page.getByRole("button", { name: "Repetir pedido" }).click();
   await expect(page).toHaveURL(new RegExp(`/p/${token}$`));
-  await expect(page.getByRole("link", { name: "Revisar pedido" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Revisar pedido" })).toBeVisible();
 });
