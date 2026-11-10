@@ -25,7 +25,8 @@ export const orders = pgTable(
     customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id),
-    number: integer("number").notNull(),
+    // NULL mientras es borrador; se asigna al enviar (con lock en suppliers.next_order_number).
+    number: integer("number"),
     status: orderStatus("status").notNull().default("draft"),
     createdBy: orderActor("created_by").notNull(),
     // Copia de cómo se calculó el pedido.
