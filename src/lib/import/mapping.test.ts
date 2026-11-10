@@ -8,6 +8,7 @@ import {
   parseOrderMode,
   parsePricingUnit,
   reconcileMapping,
+  validateMapping,
 } from "./mapping";
 
 describe("normalizeHeader", () => {
@@ -60,6 +61,41 @@ describe("reconcileMapping", () => {
     const m = reconcileMapping(saved, ["COD", "Precio"]);
     expect(m.codigo).toBe("COD");
     expect(m.nombre).toBeNull();
+  });
+});
+
+describe("validateMapping", () => {
+  const base = () => ({
+    ...emptyMapping(),
+    nombre: "Nombre",
+    precio_mayorista: "Precio",
+  });
+
+  it("acepta un mapeo con nombre y precio mayorista", () => {
+    expect(validateMapping(base(), false)).toBeNull();
+  });
+
+  it("exige la columna de nombre", () => {
+    expect(validateMapping({ ...base(), nombre: null }, false)).toBe(
+      "Falta asignar la columna de Nombre.",
+    );
+  });
+
+  it("exige la columna de precio mayorista", () => {
+    expect(validateMapping({ ...base(), precio_mayorista: null }, false)).toBe(
+      "Falta asignar la columna de Precio mayorista.",
+    );
+  });
+
+  it("exige código cuando el proveedor usa códigos propios", () => {
+    expect(validateMapping(base(), true)).toBe(
+      "Usás códigos propios: asigná la columna de Código.",
+    );
+    expect(validateMapping({ ...base(), codigo: "COD" }, true)).toBeNull();
+  });
+
+  it("no exige código cuando el proveedor no usa códigos propios", () => {
+    expect(validateMapping(base(), false)).toBeNull();
   });
 });
 

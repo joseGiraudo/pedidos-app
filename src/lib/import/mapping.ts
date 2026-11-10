@@ -48,6 +48,14 @@ export function emptyMapping(): ColumnMapping {
   return Object.fromEntries(CANONICAL_FIELDS.map((f) => [f, null])) as ColumnMapping;
 }
 
+/** Valida que el mapeo tenga lo mínimo (nombre y precio mayorista; código si se usan propios). */
+export function validateMapping(mapping: ColumnMapping, usesOwnCodes: boolean): string | null {
+  if (!mapping.nombre) return "Falta asignar la columna de Nombre.";
+  if (!mapping.precio_mayorista) return "Falta asignar la columna de Precio mayorista.";
+  if (usesOwnCodes && !mapping.codigo) return "Usás códigos propios: asigná la columna de Código.";
+  return null;
+}
+
 /**
  * Normaliza un encabezado para comparar: sin acentos, en minúsculas, con `.`/`_` y espacios
  * colapsados. Así "P. Lista" y "p_lista" caen en la misma forma ("p lista").

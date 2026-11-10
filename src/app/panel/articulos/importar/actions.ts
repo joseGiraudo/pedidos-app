@@ -14,6 +14,7 @@ import { nextGeneratedCode } from "@/lib/validations/catalog";
 import {
   autoDetectMapping,
   reconcileMapping,
+  validateMapping,
   type ColumnMapping,
 } from "@/lib/import/mapping";
 import { parseCsv, parseXlsx, type RawSheet } from "@/lib/import/parse";
@@ -142,14 +143,6 @@ function money(n: number): string {
 /** Peso a string `numeric(…,3)`. */
 function weight(n: number): string {
   return n.toFixed(3);
-}
-
-/** Valida que el mapeo tenga lo mínimo (nombre y precio mayorista; código si se usan propios). */
-export function validateMapping(mapping: ColumnMapping, usesOwnCodes: boolean): string | null {
-  if (!mapping.nombre) return "Falta asignar la columna de Nombre.";
-  if (!mapping.precio_mayorista) return "Falta asignar la columna de Precio mayorista.";
-  if (usesOwnCodes && !mapping.codigo) return "Usás códigos propios: asigná la columna de Código.";
-  return null;
 }
 
 /** Clasifica la planilla contra el catálogo actual (crear/actualizar/duplicado/omitir/error). */
