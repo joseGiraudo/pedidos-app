@@ -9,6 +9,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { db } from "@/db";
 import { customers } from "@/db/schema";
+import { buildCustomerLink, buildWhatsappShareUrl } from "@/lib/customer-link";
 import { getCurrentTenant } from "@/lib/session";
 import { tenantEq } from "@/lib/tenant";
 
@@ -156,7 +157,16 @@ export default async function ClientesPage({
                   <td className="p-3">{PRICE_LIST_LABEL[c.priceList]}</td>
                   <td className="p-3">{formatDiscount(c.discountPct)}</td>
                   <td className="p-3">
-                    <CustomerLinkCell id={c.id} link={`${baseUrl}/p/${c.accessToken}`} />
+                    {(() => {
+                      const link = buildCustomerLink(baseUrl, c.accessToken);
+                      return (
+                        <CustomerLinkCell
+                          id={c.id}
+                          link={link}
+                          whatsappUrl={buildWhatsappShareUrl(c.phone, link, c.businessName)}
+                        />
+                      );
+                    })()}
                   </td>
                   <td className="p-3">
                     <CustomerRowActions
