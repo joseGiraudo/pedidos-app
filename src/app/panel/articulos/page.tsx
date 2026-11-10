@@ -1,6 +1,6 @@
-import { and, asc, count, desc, eq, ilike, isNull, or } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { cn } from "cn";
-import { PlusIcon, UploadIcon } from "lucide-react";
+import { DownloadIcon, PlusIcon, UploadIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -13,26 +13,20 @@ import { tenantEq } from "@/lib/tenant";
 
 import { ArticlesTable, type ProductRow } from "./articles-table";
 import { ArticlesToolbar } from "./articles-toolbar";
+import {
+  buildProductWhere,
+  productOrderBy,
+  readProductFilters,
+  readProductSort,
+  str,
+  type SearchParams,
+} from "./product-filters";
 
 export const metadata: Metadata = {
   title: "Artículos",
 };
 
 const PAGE_SIZE = 20;
-
-// Columnas por las que se puede ordenar desde los encabezados (orden en el servidor).
-const sortableColumns = {
-  name: products.name,
-  code: products.code,
-  wholesale: products.wholesalePrice,
-} as const;
-type SortKey = keyof typeof sortableColumns;
-
-type SearchParams = Record<string, string | string[] | undefined>;
-
-function str(value: string | string[] | undefined): string {
-  return typeof value === "string" ? value : "";
-}
 
 export default async function ArticulosPage({
   searchParams,
@@ -54,39 +48,25 @@ export default async function ArticulosPage({
   }
 
   const sp = await searchParams;
-  const q = str(sp.q).trim();
-  const cat = str(sp.cat);
-  const brand = str(sp.brand);
-  const availParam = str(sp.avail);
-  const avail = availParam === "yes" || availParam === "no" ? availParam : "all";
-  const statusParam = str(sp.status);
-  const status = statusParam === "inactive" || statusParam === "all" ? statusParam : "active";
+  const filters = readProductFilters(sp);
+  const sort = readProductSort(sp);
   const page = Math.max(1, Number(str(sp.page)) || 1);
 
-  const sortParam = str(sp.sort);
-  const sortKey: SortKey = sortParam in sortableColumns ? (sortParam as SortKey) : "name";
-  const dir = str(sp.dir) === "desc" ? "desc" : "asc";
+  const where = buildProductWhere(tenant, supplier, filters);
+  const order = productOrderBy(sort);
 
-  // Por defecto solo activos; el filtro de estado permite ver los dados de baja.
-  const conditions = [tenantEq(products, tenant)];
-  if (status === "active") conditions.push(eq(products.isActive, true));
-  else if (status === "inactive") conditions.push(eq(products.isActive, false));
-  if (q) {
-    const search = or(ilike(products.name, `%${q}%`), ilike(products.code, `%${q}%`));
-    if (search) conditions.push(search);
-  }
-  if (supplier.useCategories && cat) {
-    conditions.push(cat === "none" ? isNull(products.categoryId) : eq(products.categoryId, cat));
-  }
-  if (supplier.useBrands && brand) {
-    conditions.push(brand === "none" ? isNull(products.brandId) : eq(products.brandId, brand));
-  }
-  if (avail === "yes") conditions.push(eq(products.isAvailable, true));
-  else if (avail === "no") conditions.push(eq(products.isAvailable, false));
-  const where = and(...conditions);
-
-  const orderColumn = sortableColumns[sortKey];
-  const order = dir === "desc" ? desc(orderColumn) : asc(orderColumn);
+  // Query de exportación: mismos filtros/orden que la vista actual (lista completa o filtrada).
+  const exportParams = new URLSearchParams();
+  if (filters.q) exportParams.set("q", filters.q);
+  if (filters.cat) exportParams.set("cat", filters.cat);
+  if (filters.brand) exportParams.set("brand", filters.brand);
+  if (filters.avail !== "all") exportParams.set("avail", filters.avail);
+  if (filters.status !== "active") exportParams.set("status", filters.status);
+  if (sort.key !== "name") exportParams.set("sort", sort.key);
+  if (sort.dir !== "asc") exportParams.set("dir", sort.dir);
+  const exportQs = exportParams.toString();
+  const exportHref = (format: string) =>
+    `/panel/articulos/export?${exportQs}${exportQs ? "&" : ""}format=${format}`;
 
   const [{ total }] = await db.select({ total: count() }).from(products).where(where);
 
@@ -107,7 +87,7 @@ export default async function ArticulosPage({
     .leftJoin(brands, eq(products.brandId, brands.id))
     .leftJoin(categories, eq(products.categoryId, categories.id))
     .where(where)
-    .orderBy(order, asc(products.name))
+    .orderBy(...order)
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE);
 
@@ -139,6 +119,20 @@ export default async function ArticulosPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={exportHref("csv")}
+            className={cn(buttonVariants({ size: "lg", variant: "outline" }))}
+          >
+            <DownloadIcon />
+            CSV
+          </a>
+          <a
+            href={exportHref("xlsx")}
+            className={cn(buttonVariants({ size: "lg", variant: "outline" }))}
+          >
+            <DownloadIcon />
+            Excel
+          </a>
           <Link
             href="/panel/articulos/importar"
             className={cn(buttonVariants({ size: "lg", variant: "outline" }))}
@@ -154,7 +148,7 @@ export default async function ArticulosPage({
       </div>
 
       <ArticlesToolbar
-        defaults={{ q, cat, brand, avail, status }}
+        defaults={filters}
         categories={categoryOptions}
         brands={brandOptions}
         useBrands={supplier.useBrands}
@@ -165,7 +159,7 @@ export default async function ArticulosPage({
         rows={rows}
         useBrands={supplier.useBrands}
         useCategories={supplier.useCategories}
-        sort={{ key: sortKey, dir }}
+        sort={sort}
         pagination={{ page, pageSize: PAGE_SIZE, total }}
       />
     </main>

@@ -179,7 +179,14 @@ export function ImportWizard({ usesOwnCodes, useBrands, useCategories }: ImportW
             className="text-sm"
           />
           <p className="text-muted-foreground text-xs">
-            CSV con separador «;» y decimales con coma. La primera fila son los encabezados.
+            CSV con separador «;» y decimales con coma. La primera fila son los encabezados.{" "}
+            <a
+              href="/panel/articulos/export?template=1&format=xlsx"
+              className="underline hover:no-underline"
+            >
+              Descargar plantilla
+            </a>
+            .
           </p>
         </div>
         <div>
